@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "SvelteSharp.Sample.Client": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:64908;http://localhost:64909"
+    }
+  }
+}

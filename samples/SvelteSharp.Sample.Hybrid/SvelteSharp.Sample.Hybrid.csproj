@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <SvelteSharpBuildTaskAssembly>$(MSBuildThisFileDirectory)..\..\SvelteSharp.Build\bin\$(Configuration)\net10.0\SvelteSharp.Build.dll</SvelteSharpBuildTaskAssembly>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\SvelteSharp\SvelteSharp.csproj" />
+    <ProjectReference Include="..\..\SvelteSharp.Engine.Jint\SvelteSharp.Engine.Jint.csproj" />
+    <ProjectReference Include="..\..\SvelteSharp.Build\SvelteSharp.Build.csproj" />
+  </ItemGroup>
+
+  <!-- The sample uses project references; NuGet consumers get this target transitively. -->
+  <Import Project="..\..\SvelteSharp.Build\buildTransitive\SvelteSharp.Build.targets" />
+</Project>

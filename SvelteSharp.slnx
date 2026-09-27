@@ -1,0 +1,10 @@
+<Solution>
+  <Project Path="SvelteSharp/SvelteSharp.csproj" />
+  <Project Path="SvelteSharp.Build/SvelteSharp.Build.csproj" />
+  <Project Path="SvelteSharp.Engine.Jint/SvelteSharp.Engine.Jint.csproj" />
+  <Project Path="SvelteSharp.Engine.Okojo/SvelteSharp.Engine.Okojo.csproj" />
+  <Project Path="tests/SvelteSharp.Tests/SvelteSharp.Tests.csproj" />
+  <Project Path="samples/SvelteSharp.Sample.Hybrid/SvelteSharp.Sample.Hybrid.csproj" />
+  <Project Path="samples/SvelteSharp.Sample.Client/SvelteSharp.Sample.Client.csproj" />
+  <Project Path="samples/SvelteSharp.Sample.Server/SvelteSharp.Sample.Server.csproj" />
+</Solution>

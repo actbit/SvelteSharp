@@ -1,0 +1,37 @@
+<Project>
+  <PropertyGroup>
+    <SvelteSharpViewsPath Condition="'$(SvelteSharpViewsPath)' == ''">$(ProjectDir)Views</SvelteSharpViewsPath>
+    <SvelteSharpBuildTaskAssembly Condition="'$(SvelteSharpBuildTaskAssembly)' == ''">$(MSBuildThisFileDirectory)..\tools\net10.0\SvelteSharp.Build.dll</SvelteSharpBuildTaskAssembly>
+    <SvelteSharpToolchainPath Condition="'$(SvelteSharpToolchainPath)' == ''">$(ProjectDir)tools\svelte</SvelteSharpToolchainPath>
+    <SvelteSharpModelAssembly Condition="'$(SvelteSharpModelAssembly)' == ''">$(TargetPath)</SvelteSharpModelAssembly>
+    <SvelteSharpSvelteVersion Condition="'$(SvelteSharpSvelteVersion)' == ''">5.57.1</SvelteSharpSvelteVersion>
+    <SvelteSharpEsbuildVersion Condition="'$(SvelteSharpEsbuildVersion)' == ''">0.28.1</SvelteSharpEsbuildVersion>
+    <SvelteSharpTypeScriptVersion Condition="'$(SvelteSharpTypeScriptVersion)' == ''">5.7.3</SvelteSharpTypeScriptVersion>
+  </PropertyGroup>
+
+  <Target Name="SvelteSharpRestoreToolchain" BeforeTargets="SvelteSharpCheckToolchain;SvelteSharpPublishViews">
+    <Exec Command="dotnet &quot;$(SvelteSharpBuildTaskAssembly)&quot; --restore-toolchain true --toolchain &quot;$(SvelteSharpToolchainPath)&quot; --svelte-version &quot;$(SvelteSharpSvelteVersion)&quot; --esbuild-version &quot;$(SvelteSharpEsbuildVersion)&quot; --typescript-version &quot;$(SvelteSharpTypeScriptVersion)&quot;" />
+  </Target>
+
+  <Target Name="SvelteSharpCheckToolchain" BeforeTargets="SvelteSharpBuildViews">
+    <Error Condition="!Exists('$(SvelteSharpToolchainPath)\generated\svelte-compiler.js')"
+           Text="SvelteSharp toolchain is not installed at '$(SvelteSharpToolchainPath)'. The SvelteSharp.Build NuGet target restores it during dotnet build; check the previous restore diagnostic." />
+  </Target>
+
+  <Target Name="SvelteSharpBuildViews"
+          BeforeTargets="CopyFilesToOutputDirectory"
+          Condition="'$(SvelteSharpDisableBuild)' != 'true' and Exists('$(SvelteSharpBuildTaskAssembly)')">
+    <PropertyGroup>
+      <!-- TargetDir is finalized by the SDK targets, so resolve the default
+           output at target execution time rather than during import evaluation. -->
+      <SvelteSharpBuildOutput Condition="'$(SvelteSharpBuildOutput)' == ''">$(TargetDir)SvelteSharp</SvelteSharpBuildOutput>
+    </PropertyGroup>
+    <Exec Command="dotnet &quot;$(SvelteSharpBuildTaskAssembly)&quot; --views &quot;$(SvelteSharpViewsPath)&quot; --output &quot;$(SvelteSharpBuildOutput)&quot; --compiler &quot;$(SvelteSharpCompilerEngine)&quot; --lock-hash &quot;$(SvelteSharpDependencyLockHash)&quot; --toolchain &quot;$(SvelteSharpToolchainPath)&quot; --assembly &quot;$(SvelteSharpModelAssembly)&quot; --svelte-version &quot;$(SvelteSharpSvelteVersion)&quot; --esbuild-version &quot;$(SvelteSharpEsbuildVersion)&quot; --typescript-version &quot;$(SvelteSharpTypeScriptVersion)&quot;" />
+  </Target>
+
+  <Target Name="SvelteSharpPublishViews"
+          AfterTargets="Publish"
+          Condition="'$(SvelteSharpDisableBuild)' != 'true' and Exists('$(SvelteSharpBuildTaskAssembly)')">
+    <Exec Command="dotnet &quot;$(SvelteSharpBuildTaskAssembly)&quot; --views &quot;$(SvelteSharpViewsPath)&quot; --output &quot;$(PublishDir)SvelteSharp&quot; --compiler &quot;$(SvelteSharpCompilerEngine)&quot; --lock-hash &quot;$(SvelteSharpDependencyLockHash)&quot; --toolchain &quot;$(SvelteSharpToolchainPath)&quot; --assembly &quot;$(SvelteSharpModelAssembly)&quot; --svelte-version &quot;$(SvelteSharpSvelteVersion)&quot; --esbuild-version &quot;$(SvelteSharpEsbuildVersion)&quot; --typescript-version &quot;$(SvelteSharpTypeScriptVersion)&quot;" />
+  </Target>
+</Project>

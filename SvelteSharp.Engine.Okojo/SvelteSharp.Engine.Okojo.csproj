@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>SvelteSharp.Engine.Okojo</RootNamespace>
+    <AssemblyName>SvelteSharp.Engine.Okojo</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SvelteSharp\SvelteSharp.csproj" />
+    <PackageReference Include="Okojo.JavaScript.Embedding" Version="0.2.0-preview.2" />
+  </ItemGroup>
+</Project>

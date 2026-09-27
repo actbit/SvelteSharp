@@ -1,0 +1,21 @@
+# IDE and local tooling
+.vs/
+
+# Build output
+**/bin/
+**/obj/
+TestResults/
+*.trx
+
+# Setup-installed Svelte toolchains
+**/tools/svelte/node_modules/
+**/tools/svelte/generated/
+**/tools/svelte/package-lock.json
+**/tools/svelte/toolchain.json
+**/tools/svelte/esbuild.path
+
+# Generated SvelteSharp artifacts
+samples/**/SvelteSharp/
+
+# Temporary files
+.tmp/
