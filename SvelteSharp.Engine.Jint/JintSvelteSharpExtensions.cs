@@ -92,6 +92,7 @@ public static class JintSvelteSharpExtensions
         builder.Options.UseManagedSsrBaseline = false;
         builder.Services.AddSingleton<JintJsonRuntimeFactory>();
         builder.Services.AddSingleton<ISsrJavaScriptRuntimeFactory>(sp => sp.GetRequiredService<JintJsonRuntimeFactory>());
+        builder.Services.AddSingleton<JintSsrRuntimePool>();
         builder.Services.AddSingleton<ISvelteGraphBundler>(sp =>
         {
             var prebuilt = sp.GetRequiredService<SveltePrebuiltArtifactStore>();
@@ -101,7 +102,10 @@ public static class JintSvelteSharpExtensions
                     sp.GetService<ISvelteModuleSourceProvider>(),
                     new NativeEsbuildOptions { ToolchainPath = sp.GetRequiredService<SvelteToolchain>().RootPath });
         });
-        builder.Services.AddSingleton<ISvelteSsrRenderer, JintSvelteSsrRenderer>();
+        builder.Services.AddSingleton<ISvelteSsrRenderer>(sp => new JintSvelteSsrRenderer(
+            sp.GetRequiredService<ISsrJavaScriptRuntimeFactory>(),
+            sp.GetRequiredService<ISvelteGraphBundler>(),
+            sp.GetRequiredService<JintSsrRuntimePool>()));
         return builder;
     }
 }

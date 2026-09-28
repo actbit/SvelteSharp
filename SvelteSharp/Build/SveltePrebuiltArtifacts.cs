@@ -237,7 +237,8 @@ public sealed class PrebuiltSvelteCompiler : ISvelteCompiler
             [],
             sourceHash)
         {
-            CompilerVersion = view.CompilerVersion
+            CompilerVersion = view.CompilerVersion,
+            RequiresAsyncRender = (view.ServerGraph ?? string.Empty).Contains("async", StringComparison.Ordinal)
         };
         return ValueTask.FromResult(result);
     }

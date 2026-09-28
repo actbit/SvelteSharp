@@ -140,6 +140,9 @@ public sealed class NativeSvelteGraphBundler : ISvelteGraphBundler
             export function renderSnapshot(snapshot) {
               return render(Component, { props: { model: JSON.parse(snapshot) } });
             }
+            export function renderModel(model) {
+              return render(Component, { props: { model } });
+            }
             """;
 
     private static string CreateClientEntry(string viewName)

@@ -83,6 +83,24 @@ public sealed class SvelteIntegrationTests
         Assert.Contains("id=\"svelte-model\"", html);
         Assert.Contains("\"title\":\"Phone\"", html);
         Assert.Contains("type=\"module\"", html);
+
+        var secondContext = new DefaultHttpContext { RequestServices = provider };
+        secondContext.Request.Scheme = "https";
+        secondContext.Request.Host = new HostString("example.test");
+        await using var secondBody = new MemoryStream();
+        secondContext.Response.Body = secondBody;
+
+        await SvelteSharp.Svelte.View(
+            source.ViewName,
+            new { title = "Tablet", price = 800 },
+            SvelteRenderMode.Server).ExecuteAsync(secondContext);
+
+        secondBody.Position = 0;
+        using var secondReader = new StreamReader(secondBody);
+        var secondHtml = await secondReader.ReadToEndAsync();
+        Assert.Contains("<title>Tablet</title>", secondHtml);
+        Assert.Contains("<h1>Tablet</h1>", secondHtml);
+        Assert.DoesNotContain("Phone", secondHtml, StringComparison.Ordinal);
     }
 
     [Fact]

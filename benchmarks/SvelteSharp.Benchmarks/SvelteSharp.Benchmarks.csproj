@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <JsxCoreFramework>preact</JsxCoreFramework>
+    <JsxCoreCompileOnBuild>true</JsxCoreCompileOnBuild>
+    <JsxCoreTypeChecking>off</JsxCoreTypeChecking>
+    <JsxCoreMinify>false</JsxCoreMinify>
+    <SvelteSharpBuildTaskAssembly>$(MSBuildThisFileDirectory)..\..\SvelteSharp.Build\bin\$(Configuration)\net10.0\SvelteSharp.Build.dll</SvelteSharpBuildTaskAssembly>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="..\..\SvelteSharp\SvelteSharp.csproj" />
+    <ProjectReference Include="..\..\SvelteSharp.Engine.Jint\SvelteSharp.Engine.Jint.csproj" />
+    <ProjectReference Include="..\..\SvelteSharp.Build\SvelteSharp.Build.csproj" />
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageReference Include="JsxCore" Version="1.0.3" />
+  </ItemGroup>
+
+  <!-- The benchmark uses project references so it can exercise the same build-time artifact path
+       as the samples. NuGet consumers get this target transitively. -->
+  <Import Project="..\..\SvelteSharp.Build\buildTransitive\SvelteSharp.Build.targets" />
+</Project>

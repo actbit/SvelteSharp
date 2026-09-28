@@ -118,6 +118,10 @@ svelte.UseJintForCompiler()
 
 To use Okojo, reference the `SvelteSharp.Engine.Okojo` package as well.
 
+Jint SSR uses a bounded engine pool. Each precompiled server bundle is parsed once per pooled
+engine, and the request-specific global state is restored before the engine is returned. The
+bundle is trusted generated code; request models still cross the JavaScript boundary as JSON.
+
 ## Samples
 
 The repository contains one independent ASP.NET Core project for each rendering mode:
@@ -135,6 +139,18 @@ See [samples/README.md](samples/README.md) for the Hybrid flow and the differenc
 ```powershell
 dotnet test tests/SvelteSharp.Tests/SvelteSharp.Tests.csproj
 ```
+
+### CI and performance comparison
+
+The GitHub Actions `CI` workflow restores, builds, and tests the repository on .NET 10. Manual or scheduled runs also execute a BenchmarkDotNet comparison of pooled and isolated SvelteSharp (Jint SSR) against JsxCore (Preact SSR) using equivalent precompiled views and upload the results as an artifact.
+
+Run the comparison locally with:
+
+```powershell
+dotnet run --project benchmarks/SvelteSharp.Benchmarks/SvelteSharp.Benchmarks.csproj -c Release -- --filter '*SsrRenderingBenchmarks*'
+```
+
+The benchmark excludes initial compilation, esbuild, toolchain restoration, and file discovery. It measures steady-state SSR of precompiled views only; treat the result as a relative comparison from the same machine and runtime, not an absolute claim across environments.
 
 More documentation:
 

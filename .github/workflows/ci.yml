@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * 1'
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: '**/*.csproj'
+
+      - name: Restore
+        run: dotnet restore SvelteSharp.slnx
+
+      - name: Build build task
+        run: dotnet build SvelteSharp.Build/SvelteSharp.Build.csproj --configuration Release --no-restore
+
+      - name: Restore Svelte toolchain for integration tests
+        run: >-
+          dotnet run --project SvelteSharp.Build/SvelteSharp.Build.csproj
+          --configuration Release --no-build --no-restore --
+          --restore-toolchain true --toolchain tools/svelte
+
+      - name: Build
+        run: >-
+          dotnet build SvelteSharp.slnx --configuration Release --no-restore -m:1
+          -p:SvelteSharpToolchainPath=${{ github.workspace }}/tools/svelte
+
+      - name: Test
+        run: dotnet test tests/SvelteSharp.Tests/SvelteSharp.Tests.csproj --configuration Release --no-build --no-restore
+
+  performance:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: '**/*.csproj'
+
+      - name: Restore
+        run: dotnet restore benchmarks/SvelteSharp.Benchmarks/SvelteSharp.Benchmarks.csproj
+
+      - name: Build build task
+        run: dotnet build SvelteSharp.Build/SvelteSharp.Build.csproj --configuration Release --no-restore
+
+      - name: Restore Svelte toolchain
+        run: >-
+          dotnet run --project SvelteSharp.Build/SvelteSharp.Build.csproj
+          --configuration Release --no-build --no-restore --
+          --restore-toolchain true --toolchain tools/svelte
+
+      - name: Build benchmark
+        run: >-
+          dotnet build benchmarks/SvelteSharp.Benchmarks/SvelteSharp.Benchmarks.csproj
+          --configuration Release --no-restore
+          -p:SvelteSharpToolchainPath=${{ github.workspace }}/tools/svelte
+
+      - name: Run benchmark
+        run: >-
+          dotnet run --project benchmarks/SvelteSharp.Benchmarks/SvelteSharp.Benchmarks.csproj
+          --configuration Release --no-build -- --filter '*SsrRenderingBenchmarks*'
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-results
+          path: BenchmarkDotNet.Artifacts

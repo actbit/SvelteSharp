@@ -118,6 +118,9 @@ svelte.UseJintForCompiler()
 
 Okojoを使う場合は `SvelteSharp.Engine.Okojo` パッケージも参照してください。
 
+Jint の SSR では上限付きのエンジンプールを使用します。事前コンパイル済みの server
+bundle はプール内の各エンジンで一度だけ解析し、リクエストごとのグローバル状態を復元してから返却します。bundle は信頼できる生成コードであることを前提とし、リクエストの Model は引き続き JSON として JavaScript 境界を越えます。
+
 ## サンプル
 
 描画モードごとに独立したサンプルがあります。
@@ -135,6 +138,18 @@ dotnet run --project samples/SvelteSharp.Sample.Server/SvelteSharp.Sample.Server
 ```powershell
 dotnet test tests/SvelteSharp.Tests/SvelteSharp.Tests.csproj
 ```
+
+### CI とパフォーマンス比較
+
+GitHub Actions の `CI` workflow は .NET 10 の復元、ビルド、テストを実行します。手動実行またはスケジュール実行では、事前コンパイル済みの同等ビューを使った SvelteSharp (Jint SSR、プールあり/なし) と JsxCore (Preact SSR) の BenchmarkDotNet 比較も実行し、結果をアーティファクトとして保存します。
+
+ローカルで比較する場合:
+
+```powershell
+dotnet run --project benchmarks/SvelteSharp.Benchmarks/SvelteSharp.Benchmarks.csproj -c Release -- --filter '*SsrRenderingBenchmarks*'
+```
+
+この比較には初回コンパイル、esbuild、ツールチェーン復元、ファイル探索は含めず、事前コンパイル済みビューの定常状態 SSR だけを含めます。実行環境や Jint のエンジン・プール方式が異なるため、結果は絶対値ではなく同一環境での相対値として扱ってください。
 
 設計とセットアップの詳細:
 

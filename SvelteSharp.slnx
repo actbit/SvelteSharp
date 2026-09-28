@@ -7,4 +7,5 @@
   <Project Path="samples/SvelteSharp.Sample.Hybrid/SvelteSharp.Sample.Hybrid.csproj" />
   <Project Path="samples/SvelteSharp.Sample.Client/SvelteSharp.Sample.Client.csproj" />
   <Project Path="samples/SvelteSharp.Sample.Server/SvelteSharp.Sample.Server.csproj" />
+  <Project Path="benchmarks/SvelteSharp.Benchmarks/SvelteSharp.Benchmarks.csproj" />
 </Solution>

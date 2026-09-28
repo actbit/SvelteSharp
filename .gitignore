@@ -6,6 +6,13 @@
 **/obj/
 TestResults/
 *.trx
+**/BenchmarkDotNet.Artifacts/
+
+# JsxCore build-time package and editor output in the benchmark project
+benchmarks/SvelteSharp.Benchmarks/node_modules/
+benchmarks/SvelteSharp.Benchmarks/package.json
+benchmarks/SvelteSharp.Benchmarks/package-lock.json
+benchmarks/SvelteSharp.Benchmarks/Views/tsconfig.json
 
 # Setup-installed Svelte toolchains
 **/tools/svelte/node_modules/

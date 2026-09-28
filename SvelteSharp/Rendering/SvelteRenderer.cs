@@ -22,6 +22,10 @@ public sealed class SvelteRenderer : ISvelteRenderer
     private readonly ISvelteSsrRenderer _ssrRenderer;
     private readonly SvelteToolchain _toolchain;
     private readonly ConcurrentDictionary<string, CompiledView> _compiledViews = new(StringComparer.Ordinal);
+    private readonly SemaphoreSlim _manifestGate = new(1, 1);
+    private SvelteBuildManifest? _publishedManifest;
+    private int _compiledViewsVersion;
+    private int _publishedManifestVersion = -1;
 
     /// <summary>Creates a renderer.</summary>
     public SvelteRenderer(
@@ -137,62 +141,88 @@ public sealed class SvelteRenderer : ISvelteRenderer
         var result = await _compiler.CompileAsync(source, compilerOptions, cancellationToken);
         var compiled = new CompiledView(result.SourceHash, result);
         _compiledViews[source.ViewName] = compiled;
+        Interlocked.Increment(ref _compiledViewsVersion);
+        Volatile.Write(ref _publishedManifestVersion, -1);
         return compiled;
     }
 
     private async ValueTask<SvelteBuildManifest> PublishManifestAsync(CancellationToken cancellationToken)
     {
-        var bundledViews = new List<BundledView>();
-        foreach (var view in _compiledViews.Values.OrderBy(view => view.Result.ViewName, StringComparer.Ordinal))
+        var currentVersion = Volatile.Read(ref _compiledViewsVersion);
+        var published = Volatile.Read(ref _publishedManifest);
+        if (published is not null && Volatile.Read(ref _publishedManifestVersion) == currentVersion)
         {
-            var server = await _graphBundler.BundleAsync(view.Result, view.Result.ViewName, SvelteGraphKind.Server, cancellationToken);
-            var client = await _graphBundler.BundleAsync(view.Result, view.Result.ViewName, SvelteGraphKind.Client, cancellationToken);
-            bundledViews.Add(new BundledView(view, server, client));
+            return published;
         }
 
-        var generated = bundledViews.SelectMany(view => new[]
+        await _manifestGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            (Path: view.Result.ViewName + ".server.js", ContentHash: Hash(view.Server.Code)),
-            (Path: view.Result.ViewName + ".client.js", ContentHash: Hash(view.Client.Code)),
-            (Path: view.Result.ViewName + ".css", ContentHash: Hash(view.Result.Css))
-        });
-        var buildId = BuildIdCalculator.Calculate(
-            SvelteSharpAssembly.ContractVersion,
-            EffectiveCompilerVersion,
-            _options.DependencyLockHash,
-            generated,
-            $"compiler={_options.CompilerEngine};ssr={_options.SsrEngine}");
-
-        var entries = new List<SvelteViewManifestEntry>();
-        var assets = new List<SveltePublicAsset>();
-        foreach (var view in bundledViews)
-        {
-            var clientPath = $"views/{view.Result.ViewName.Replace('/', '_')}.js";
-            var cssPath = string.IsNullOrWhiteSpace(view.Result.Css)
-                ? null
-                : $"views/{view.Result.ViewName.Replace('/', '_')}.css";
-            _assetStore.Put(buildId, clientPath, view.Client.Code, "text/javascript; charset=utf-8");
-            assets.Add(new SveltePublicAsset(clientPath, "text/javascript", Encoding.UTF8.GetByteCount(view.Client.Code)));
-            if (cssPath is not null)
+            currentVersion = Volatile.Read(ref _compiledViewsVersion);
+            published = Volatile.Read(ref _publishedManifest);
+            if (published is not null && Volatile.Read(ref _publishedManifestVersion) == currentVersion)
             {
-                _assetStore.Put(buildId, cssPath, view.Result.Css, "text/css; charset=utf-8");
-                assets.Add(new SveltePublicAsset(cssPath, "text/css", Encoding.UTF8.GetByteCount(view.Result.Css)));
+                return published;
             }
 
-            entries.Add(new SvelteViewManifestEntry(
-                view.Result.ViewName,
-                buildId,
-                new HashSet<SvelteRenderMode> { SvelteRenderMode.Server, SvelteRenderMode.Client, SvelteRenderMode.Hybrid },
-                view.Server.Code,
-                clientPath,
-                cssPath,
-                view.Result.SourceHash,
-                EffectiveCompilerVersion));
-        }
+            var bundledViews = new List<BundledView>();
+            foreach (var view in _compiledViews.Values.OrderBy(view => view.Result.ViewName, StringComparer.Ordinal))
+            {
+                var server = await _graphBundler.BundleAsync(view.Result, view.Result.ViewName, SvelteGraphKind.Server, cancellationToken);
+                var client = await _graphBundler.BundleAsync(view.Result, view.Result.ViewName, SvelteGraphKind.Client, cancellationToken);
+                bundledViews.Add(new BundledView(view, server, client));
+            }
 
-        var manifest = new SvelteBuildManifest(buildId, entries, assets);
-        _manifestStore.Publish(manifest);
-        return manifest;
+            var generated = bundledViews.SelectMany(view => new[]
+            {
+                (Path: view.Result.ViewName + ".server.js", ContentHash: Hash(view.Server.Code)),
+                (Path: view.Result.ViewName + ".client.js", ContentHash: Hash(view.Client.Code)),
+                (Path: view.Result.ViewName + ".css", ContentHash: Hash(view.Result.Css))
+            });
+            var buildId = BuildIdCalculator.Calculate(
+                SvelteSharpAssembly.ContractVersion,
+                EffectiveCompilerVersion,
+                _options.DependencyLockHash,
+                generated,
+                $"compiler={_options.CompilerEngine};ssr={_options.SsrEngine}");
+
+            var entries = new List<SvelteViewManifestEntry>();
+            var assets = new List<SveltePublicAsset>();
+            foreach (var view in bundledViews)
+            {
+                var clientPath = $"views/{view.Result.ViewName.Replace('/', '_')}.js";
+                var cssPath = string.IsNullOrWhiteSpace(view.Result.Css)
+                    ? null
+                    : $"views/{view.Result.ViewName.Replace('/', '_')}.css";
+                _assetStore.Put(buildId, clientPath, view.Client.Code, "text/javascript; charset=utf-8");
+                assets.Add(new SveltePublicAsset(clientPath, "text/javascript", Encoding.UTF8.GetByteCount(view.Client.Code)));
+                if (cssPath is not null)
+                {
+                    _assetStore.Put(buildId, cssPath, view.Result.Css, "text/css; charset=utf-8");
+                    assets.Add(new SveltePublicAsset(cssPath, "text/css", Encoding.UTF8.GetByteCount(view.Result.Css)));
+                }
+
+                entries.Add(new SvelteViewManifestEntry(
+                    view.Result.ViewName,
+                    buildId,
+                    new HashSet<SvelteRenderMode> { SvelteRenderMode.Server, SvelteRenderMode.Client, SvelteRenderMode.Hybrid },
+                    view.Server.Code,
+                    clientPath,
+                    cssPath,
+                    view.Result.SourceHash,
+                    EffectiveCompilerVersion));
+            }
+
+            var manifest = new SvelteBuildManifest(buildId, entries, assets);
+            _manifestStore.Publish(manifest);
+            Volatile.Write(ref _publishedManifest, manifest);
+            Volatile.Write(ref _publishedManifestVersion, currentVersion);
+            return manifest;
+        }
+        finally
+        {
+            _manifestGate.Release();
+        }
     }
 
     private string CreateClientScript(HttpContext context, string buildId, string clientEntry)
