@@ -203,6 +203,10 @@ public sealed class SvelteToolchainInstaller
             Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
             using var output = File.Create(destination);
             entry.DataStream?.CopyTo(output);
+            if (!OperatingSystem.IsWindows())
+            {
+                File.SetUnixFileMode(destination, entry.Mode);
+            }
         }
     }
 

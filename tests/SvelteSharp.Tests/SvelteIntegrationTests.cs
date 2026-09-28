@@ -6,6 +6,7 @@ using SvelteSharp.AspNetCore;
 using SvelteSharp.Build;
 using SvelteSharp.Compiler;
 using SvelteSharp.Engine.Jint;
+using SvelteSharp.Engine.Okojo;
 using SvelteSharp.Rendering;
 
 namespace SvelteSharp.Tests;
@@ -101,6 +102,54 @@ public sealed class SvelteIntegrationTests
         Assert.Contains("<title>Tablet</title>", secondHtml);
         Assert.Contains("<h1>Tablet</h1>", secondHtml);
         Assert.DoesNotContain("Phone", secondHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task OkojoPooledSsrRendersRepeatedRequestsWithoutLeakingTheModel()
+    {
+        var toolchain = SvelteToolchain.Resolve(FindToolchainPath());
+        var source = new SvelteSourceFile(
+            "Products/OkojoDetail",
+            """
+            <script>
+              let { model } = $props();
+            </script>
+            <h1>{model.title}</h1>
+            """);
+        var compiler = new SvelteCompiler(new OkojoJsonRuntimeFactory(), toolchain: toolchain);
+        var compilation = await compiler.CompileAsync(
+            source,
+            new SvelteCompilerOptions
+            {
+                CompilerVersion = SvelteCompilerBundle.Version,
+                Engine = SvelteJavaScriptEngine.Okojo
+            });
+
+        Assert.True(compilation.IsSuccessful, string.Join("; ", compilation.Diagnostics.Select(d => d.Message)));
+        var bundler = new NativeSvelteGraphBundler(
+            options: new NativeEsbuildOptions { ToolchainPath = toolchain.RootPath });
+        await using var pool = new OkojoSsrRuntimePool();
+        var renderer = new OkojoSvelteSsrRenderer(
+            new OkojoJsonRuntimeFactory(),
+            bundler,
+            pool);
+
+        var first = await renderer.RenderAsync(
+            compilation,
+            "{\"title\":\"Phone\"}",
+            new { title = "Phone" },
+            source.ViewName,
+            new DefaultHttpContext());
+        var second = await renderer.RenderAsync(
+            compilation,
+            "{\"title\":\"Tablet\"}",
+            new { title = "Tablet" },
+            source.ViewName,
+            new DefaultHttpContext());
+
+        Assert.Contains("<h1>Phone</h1>", first.Body);
+        Assert.Contains("<h1>Tablet</h1>", second.Body);
+        Assert.DoesNotContain("Phone", second.Body, StringComparison.Ordinal);
     }
 
     [Fact]

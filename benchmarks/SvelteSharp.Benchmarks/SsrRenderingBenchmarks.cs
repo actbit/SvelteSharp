@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using SvelteSharp.Build;
 using SvelteSharp.Compiler;
 using SvelteSharp.Engine.Jint;
+using SvelteSharp.Engine.Okojo;
 using SvelteSharp.JavaScript;
 using SvelteSharp.Models;
 using SvelteSharp.Rendering;
@@ -42,6 +43,9 @@ public class SsrRenderingBenchmarks
 
     private JintSvelteSsrRenderer _svelteRenderer = null!;
     private JintSvelteSsrRenderer _isolatedSvelteRenderer = null!;
+    private OkojoSvelteSsrRenderer _okojoRenderer = null!;
+    private JintSsrRuntimePool _jintPool = null!;
+    private OkojoSsrRuntimePool _okojoPool = null!;
     private SvelteCompilationResult _svelteCompilation = null!;
     private JsxServerRenderer _jsxRenderer = null!;
     private LocatedView _jsxView = null!;
@@ -75,13 +79,19 @@ public class SsrRenderingBenchmarks
                 GenerateServer = true,
                 GenerateClient = false
             });
+        _jintPool = new JintSsrRuntimePool();
         _svelteRenderer = new JintSvelteSsrRenderer(
             new JintJsonRuntimeFactory(),
             new PrebuiltSvelteGraphBundler(svelteStore),
-            new JintSsrRuntimePool());
+            _jintPool);
         _isolatedSvelteRenderer = new JintSvelteSsrRenderer(
             new JintJsonRuntimeFactory(),
             new PrebuiltSvelteGraphBundler(svelteStore));
+        _okojoPool = new OkojoSsrRuntimePool();
+        _okojoRenderer = new OkojoSvelteSsrRenderer(
+            new OkojoJsonRuntimeFactory(),
+            new PrebuiltSvelteGraphBundler(svelteStore),
+            _okojoPool);
 
         var jsxOptions = new JsxCoreOptions
         {
@@ -125,10 +135,26 @@ public class SsrRenderingBenchmarks
         // module parsing and first-use initialization.
         var svelteOutput = await RenderSvelteAsync(_svelteRenderer, _svelteContext);
         var isolatedSvelteOutput = await RenderSvelteAsync(_isolatedSvelteRenderer, _svelteContext);
+        var okojoOutput = await RenderSvelteAsync(_okojoRenderer, _svelteContext);
         var jsxOutput = (await _jsxRenderer.RenderAsync(_jsxView, _model, _context, _services)).Html;
         ValidateOutput(svelteOutput, "SvelteSharp");
         ValidateOutput(isolatedSvelteOutput, "SvelteSharp isolated");
+        ValidateOutput(okojoOutput, "SvelteSharp Okojo");
         ValidateOutput(jsxOutput, "JsxCore");
+    }
+
+    [GlobalCleanup]
+    public async Task CleanupAsync()
+    {
+        if (_jintPool is not null)
+        {
+            await _jintPool.DisposeAsync();
+        }
+
+        if (_okojoPool is not null)
+        {
+            await _okojoPool.DisposeAsync();
+        }
     }
 
     [Benchmark(Baseline = true, Description = "SvelteSharp Jint SSR (pooled)")]
@@ -145,6 +171,13 @@ public class SsrRenderingBenchmarks
         return _lastOutput;
     }
 
+    [Benchmark(Description = "SvelteSharp Okojo SSR (pooled)")]
+    public async Task<string> SvelteSharpOkojoSsr()
+    {
+        _lastOutput = await RenderSvelteAsync(_okojoRenderer, _svelteContext);
+        return _lastOutput;
+    }
+
     [Benchmark(Description = "JsxCore Preact SSR")]
     public async Task<string> JsxCorePreactSsr()
     {
@@ -153,7 +186,7 @@ public class SsrRenderingBenchmarks
         return _lastOutput;
     }
 
-    private async Task<string> RenderSvelteAsync(JintSvelteSsrRenderer renderer, HttpContext context)
+    private async Task<string> RenderSvelteAsync(ISvelteSsrRenderer renderer, HttpContext context)
     {
         // SvelteSharp's SSR adapter accepts the shared snapshot because the same JSON is also
         // embedded for hydration. Serialize inside the measured method so the comparison includes

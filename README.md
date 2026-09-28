@@ -122,6 +122,10 @@ Jint SSR uses a bounded engine pool. Each precompiled server bundle is parsed on
 engine, and the request-specific global state is restored before the engine is returned. The
 bundle is trusted generated code; request models still cross the JavaScript boundary as JSON.
 
+Okojo SSR uses the same bounded pooling strategy. Synchronous renders call the prepared Svelte
+function directly, while Promise-based renders use Okojo's host pump. A runtime that fails or
+times out is discarded rather than returned to the pool.
+
 ## Samples
 
 The repository contains one independent ASP.NET Core project for each rendering mode:
@@ -142,7 +146,7 @@ dotnet test tests/SvelteSharp.Tests/SvelteSharp.Tests.csproj
 
 ### CI and performance comparison
 
-The GitHub Actions `CI` workflow restores, builds, and tests the repository on .NET 10. Manual or scheduled runs also execute a BenchmarkDotNet comparison of pooled and isolated SvelteSharp (Jint SSR) against JsxCore (Preact SSR) using equivalent precompiled views and upload the results as an artifact.
+The GitHub Actions `CI` workflow restores, builds, and tests the repository on .NET 10. Manual or scheduled runs also execute a BenchmarkDotNet comparison of pooled and isolated SvelteSharp (Jint/Okojo SSR) against JsxCore (Preact SSR) using equivalent precompiled views and upload the results as an artifact.
 
 Run the comparison locally with:
 
@@ -151,6 +155,17 @@ dotnet run --project benchmarks/SvelteSharp.Benchmarks/SvelteSharp.Benchmarks.cs
 ```
 
 The benchmark excludes initial compilation, esbuild, toolchain restoration, and file discovery. It measures steady-state SSR of precompiled views only; treat the result as a relative comparison from the same machine and runtime, not an absolute claim across environments.
+
+Example local result (Windows 11, Ryzen 7 7735HS, .NET 10.0.12):
+
+| Renderer | Mean | Allocated |
+| --- | ---: | ---: |
+| SvelteSharp Jint SSR (pooled) | 224.2 us | 70.96 KB |
+| SvelteSharp Okojo SSR (pooled) | 242.3 us | 28.45 KB |
+| JsxCore Preact SSR | 414.0 us | 149.23 KB |
+| SvelteSharp Jint SSR (isolated) | 6,562.9 us | 1,662.79 KB |
+
+The Jint and JsxCore values were measured together with 15 iterations and 5 warmups; the Okojo value was measured separately with 5 iterations and 3 warmups. In the same Jint/JsxCore run, pooled SvelteSharp was about 46% faster with about 52% less allocation.
 
 More documentation:
 

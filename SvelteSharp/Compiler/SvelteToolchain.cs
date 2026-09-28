@@ -76,7 +76,12 @@ public sealed class SvelteToolchain
     {
         get
         {
-            var expected = Path.Combine(RootPath, "node_modules", "@esbuild", "win32-x64", "esbuild.exe");
+            var expected = Path.Combine(
+                RootPath,
+                "node_modules",
+                "@esbuild",
+                NativeEsbuildPackageName,
+                NativeEsbuildExecutableName);
             if (File.Exists(expected))
             {
                 return expected;
@@ -102,7 +107,7 @@ public sealed class SvelteToolchain
             var nodeModules = Path.Combine(RootPath, "node_modules");
             if (Directory.Exists(nodeModules))
             {
-                var discovered = Directory.EnumerateFiles(nodeModules, "esbuild.exe", SearchOption.AllDirectories)
+                var discovered = Directory.EnumerateFiles(nodeModules, NativeEsbuildExecutableName, SearchOption.AllDirectories)
                     .FirstOrDefault();
                 if (discovered is not null)
                 {
@@ -151,6 +156,16 @@ public sealed class SvelteToolchain
             candidates.Add(Path.GetFullPath(candidate));
         }
     }
+
+    private static string NativeEsbuildPackageName
+        => OperatingSystem.IsWindows()
+            ? Environment.Is64BitOperatingSystem ? "win32-x64" : "win32-ia32"
+            : OperatingSystem.IsLinux()
+                ? "linux-x64"
+                : "darwin-x64";
+
+    private static string NativeEsbuildExecutableName
+        => OperatingSystem.IsWindows() ? "esbuild.exe" : "esbuild";
 
     private static IEnumerable<string> EnumerateAncestors(string path)
     {

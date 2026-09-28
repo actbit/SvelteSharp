@@ -85,6 +85,7 @@ public static class OkojoSvelteSharpExtensions
         builder.Options.SsrEngine = SvelteJavaScriptEngine.Okojo;
         builder.Options.UseManagedSsrBaseline = false;
         builder.Services.AddSingleton<OkojoJsonRuntimeFactory>();
+        builder.Services.AddSingleton<OkojoSsrRuntimePool>();
         builder.Services.AddSingleton<ISsrJavaScriptRuntimeFactory>(sp => sp.GetRequiredService<OkojoJsonRuntimeFactory>());
         builder.Services.AddSingleton<ISvelteGraphBundler>(sp =>
         {
@@ -95,7 +96,10 @@ public static class OkojoSvelteSharpExtensions
                     sp.GetService<ISvelteModuleSourceProvider>(),
                     new NativeEsbuildOptions { ToolchainPath = sp.GetRequiredService<SvelteToolchain>().RootPath });
         });
-        builder.Services.AddSingleton<ISvelteSsrRenderer, OkojoSvelteSsrRenderer>();
+        builder.Services.AddSingleton<ISvelteSsrRenderer>(sp => new OkojoSvelteSsrRenderer(
+            sp.GetRequiredService<ISsrJavaScriptRuntimeFactory>(),
+            sp.GetRequiredService<ISvelteGraphBundler>(),
+            sp.GetRequiredService<OkojoSsrRuntimePool>()));
         return builder;
     }
 }

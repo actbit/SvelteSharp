@@ -16,6 +16,7 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <ProjectReference Include="..\..\SvelteSharp\SvelteSharp.csproj" />
     <ProjectReference Include="..\..\SvelteSharp.Engine.Jint\SvelteSharp.Engine.Jint.csproj" />
+    <ProjectReference Include="..\..\SvelteSharp.Engine.Okojo\SvelteSharp.Engine.Okojo.csproj" />
     <ProjectReference Include="..\..\SvelteSharp.Build\SvelteSharp.Build.csproj" />
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
     <PackageReference Include="JsxCore" Version="1.0.3" />
