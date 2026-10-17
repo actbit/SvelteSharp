@@ -1,14 +1,14 @@
 # セットアップ
 
-アプリ側はNuGet参照だけでセットアップできます。Svelte、TypeScript、esbuildのファイルはSvelteSharpのリポジトリやNuGetパッケージには含まれません。
+アプリ側はNuGet参照だけでセットアップできます。通常は `SvelteSharp` メタパッケージを1つ参照すれば、Core本体・既定のJintエンジン・Build統合が揃います。Svelte、TypeScript、esbuildのファイルはSvelteSharpのリポジトリやNuGetパッケージには含まれません。
 
 ```xml
 <ItemGroup>
   <PackageReference Include="SvelteSharp" Version="1.0.0" />
-  <PackageReference Include="SvelteSharp.Engine.Jint" Version="1.0.0" />
-  <PackageReference Include="SvelteSharp.Build" Version="1.0.0" />
 </ItemGroup>
 ```
+
+Okojoを使う場合は `SvelteSharp.Engine.Okojo` を追加します。層ごとに個別参照する場合は `SvelteSharp.Core` とエンジン1つ、`SvelteSharp.Build` を参照します。
 
 既定版を変更する場合は、NuGetを参照するアプリ側のプロジェクトでMSBuildプロパティを上書きできます。版はタグや範囲ではなく、再現可能な完全なSemVerを指定します。
 

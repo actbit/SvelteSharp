@@ -10,7 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <ProjectReference Include="..\..\SvelteSharp\SvelteSharp.csproj" />
+    <ProjectReference Include="..\..\SvelteSharp.Core\SvelteSharp.Core.csproj" />
     <ProjectReference Include="..\..\SvelteSharp.Engine.Jint\SvelteSharp.Engine.Jint.csproj" />
     <ProjectReference Include="..\..\SvelteSharp.Engine.Okojo\SvelteSharp.Engine.Okojo.csproj" />
     <ProjectReference Include="..\..\SvelteSharp.Build\SvelteSharp.Build.csproj" />

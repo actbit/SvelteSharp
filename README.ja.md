@@ -12,15 +12,23 @@ SvelteSharp は、ASP.NET Core から Svelte 5 のコンポーネントを Serve
 
 ## インストール
 
-アプリ側ではNuGetパッケージを参照します。
+`SvelteSharp` メタパッケージを参照します。これだけで Core 本体、既定の Jint エンジン、MSBuild 統合が揃います。
 
 ```xml
 <ItemGroup>
   <PackageReference Include="SvelteSharp" Version="1.0.0" />
-  <PackageReference Include="SvelteSharp.Engine.Jint" Version="1.0.0" />
-  <PackageReference Include="SvelteSharp.Build" Version="1.0.0" />
 </ItemGroup>
 ```
+
+| パッケージ | 内容 |
+| --- | --- |
+| `SvelteSharp` | 既定構成用のメタパッケージ（下記3つを参照） |
+| `SvelteSharp.Core` | 依存ゼロの実行時ライブラリ |
+| `SvelteSharp.Engine.Jint` | 既定のJavaScriptエンジンアダプタ |
+| `SvelteSharp.Build` | ツールチェーン復元とviewコンパイルを行うMSBuild統合 |
+| `SvelteSharp.Engine.Okojo` | Okojoエンジンアダプタ。Okojoを使う場合は `SvelteSharp` に加えて参照 |
+
+層ごとに個別参照する場合は `SvelteSharp.Core` とエンジン1つ、`SvelteSharp.Build` を参照します。
 
 初回の `dotnet build` 時に、Svelte、TypeScript、esbuild が外部ツールチェーンとして復元されます。これらのバイナリやTypeScriptソースはSvelteSharpのNuGetパッケージには含まれません。
 

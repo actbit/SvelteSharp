@@ -12,15 +12,23 @@ SvelteSharp renders Svelte 5 components from ASP.NET Core applications using Ser
 
 ## Installation
 
-Reference the NuGet packages from the consuming application:
+Install the `SvelteSharp` meta-package. It brings the core runtime, the default Jint engine adapter, and the MSBuild integration:
 
 ```xml
 <ItemGroup>
   <PackageReference Include="SvelteSharp" Version="1.0.0" />
-  <PackageReference Include="SvelteSharp.Engine.Jint" Version="1.0.0" />
-  <PackageReference Include="SvelteSharp.Build" Version="1.0.0" />
 </ItemGroup>
 ```
+
+| Package | Contents |
+| --- | --- |
+| `SvelteSharp` | Meta-package for the default setup (references the three packages below) |
+| `SvelteSharp.Core` | Runtime library with no package dependencies |
+| `SvelteSharp.Engine.Jint` | Default JavaScript engine adapter |
+| `SvelteSharp.Build` | MSBuild integration that restores the toolchain and compiles views |
+| `SvelteSharp.Engine.Okojo` | Okojo engine adapter; reference it in addition to `SvelteSharp` to use Okojo |
+
+If you prefer to reference the layers individually, use `SvelteSharp.Core`, one engine adapter, and `SvelteSharp.Build`.
 
 On the first `dotnet build`, the Svelte, TypeScript, and esbuild toolchain is restored externally. These binaries and TypeScript sources are not embedded in the SvelteSharp NuGet packages.
 

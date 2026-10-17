@@ -23,7 +23,7 @@
     <None Include="..\README.md" Pack="true" PackagePath="\" Visible="false" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\SvelteSharp\SvelteSharp.csproj" />
+    <ProjectReference Include="..\SvelteSharp.Core\SvelteSharp.Core.csproj" />
     <PackageReference Include="Jint" Version="4.16.3" />
   </ItemGroup>
 </Project>

@@ -5,14 +5,15 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>SvelteSharp</RootNamespace>
-    <AssemblyName>SvelteSharp</AssemblyName>
+    <AssemblyName>SvelteSharp.Core</AssemblyName>
+    <PackageId>SvelteSharp.Core</PackageId>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup>
-    <Description>Renders Svelte 5 components from ASP.NET Core with Server, Client, and Hybrid rendering on .NET 10.</Description>
+    <Description>Core runtime library for SvelteSharp: renders Svelte 5 components from ASP.NET Core with Server, Client, and Hybrid rendering on .NET 10.</Description>
     <Authors>actbit</Authors>
     <PackageTags>svelte;ssr;aspnetcore;hydration;csr</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
