@@ -24,6 +24,7 @@ namespace SvelteSharp.Engine.Okojo;
 public sealed class OkojoSsrRuntimePool : IAsyncDisposable
 {
     private readonly ConcurrentDictionary<string, EngineBucket> _buckets = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, long> _bundleByteCounts = new(StringComparer.Ordinal);
     private readonly SemaphoreSlim _slots;
     private readonly int _maxPooledEnginesPerBundle;
     private int _disposed;
@@ -56,7 +57,9 @@ public sealed class OkojoSsrRuntimePool : IAsyncDisposable
         ArgumentNullException.ThrowIfNull(modelSnapshot);
         context.Limits.Validate();
 
-        var bundleBytes = Encoding.UTF8.GetByteCount(bundleCode);
+        // The bundle is a large, stable string. Its UTF-8 length is computed once per unique
+        // bundle instead of on every request.
+        var bundleBytes = _bundleByteCounts.GetOrAdd(bundleCode, static code => Encoding.UTF8.GetByteCount(code));
         if (bundleBytes > context.Limits.MaxInputBytes)
         {
             throw new JavaScriptEngineException(
@@ -98,6 +101,7 @@ public sealed class OkojoSsrRuntimePool : IAsyncDisposable
             }
 
             _buckets.Clear();
+            _bundleByteCounts.Clear();
             _slots.Dispose();
         }
 
@@ -220,7 +224,7 @@ public sealed class OkojoSsrRuntimePool : IAsyncDisposable
             bool requiresAsyncRender,
             JavaScriptExecutionContext context)
         {
-            if (bundleBytes + Encoding.UTF8.GetByteCount(modelSnapshot) > context.Limits.MaxInputBytes)
+            if (ExceedsUtf8Limit(modelSnapshot, context.Limits.MaxInputBytes - bundleBytes))
             {
                 throw new JavaScriptEngineException(
                     SvelteJavaScriptEngine.Okojo,
@@ -347,7 +351,7 @@ public sealed class OkojoSsrRuntimePool : IAsyncDisposable
                         : string.Empty;
                 var headValue = rendered["head"];
                 var head = headValue.IsString ? headValue.AsString() : string.Empty;
-                if (Encoding.UTF8.GetByteCount(body) + Encoding.UTF8.GetByteCount(head) > maxOutputBytes)
+                if (ExceedsUtf8Limit(body, head, maxOutputBytes))
                 {
                     throw new JavaScriptEngineException(
                         SvelteJavaScriptEngine.Okojo,
@@ -369,6 +373,39 @@ public sealed class OkojoSsrRuntimePool : IAsyncDisposable
                     "Okojo Svelte server render returned a non-object value.",
                     exception);
             }
+        }
+
+        // A UTF-8 string is between one and three bytes per char, so most requests can be
+        // validated against the limit without scanning the whole string.
+        private static bool ExceedsUtf8Limit(string text, long remaining)
+        {
+            if (text.Length > remaining)
+            {
+                return true;
+            }
+
+            if ((long)text.Length * 3 <= remaining)
+            {
+                return false;
+            }
+
+            return Encoding.UTF8.GetByteCount(text) > remaining;
+        }
+
+        private static bool ExceedsUtf8Limit(string first, string second, long limit)
+        {
+            var chars = (long)first.Length + second.Length;
+            if (chars > limit)
+            {
+                return true;
+            }
+
+            if (chars * 3 <= limit)
+            {
+                return false;
+            }
+
+            return Encoding.UTF8.GetByteCount(first) + Encoding.UTF8.GetByteCount(second) > limit;
         }
     }
 }

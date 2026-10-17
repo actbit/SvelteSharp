@@ -1,9 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using SvelteSharp.AspNetCore;
 using SvelteSharp.Build;
-using SvelteSharp.Compiler;
-using SvelteSharp.Engine.Jint;
 using SvelteSharp.Rendering;
 
 namespace SvelteSharp.Tests;
@@ -13,7 +10,7 @@ public sealed class SvelteRendererIntegrationTests
     [Fact]
     public async Task ClientModeRendersShellAndMetadataWithoutServerHtml()
     {
-        await using var host = CreateHost();
+        await using var host = SvelteTestHost.Create();
         host.Views.Set("Home", "<script>let { model } = $props();</script><h1>{model.title}</h1>");
 
         var rendered = await host.RenderAsync(
@@ -32,7 +29,7 @@ public sealed class SvelteRendererIntegrationTests
     [Fact]
     public async Task HybridModeAddsTheCspNonceToTheModuleScript()
     {
-        await using var host = CreateHost(options => options.CspNonceFactory = _ => "nonce-123");
+        await using var host = SvelteTestHost.Create(options => options.CspNonceFactory = _ => "nonce-123");
         host.Views.Set("Home", "<script>let { model } = $props();</script><h1>{model.title}</h1>");
 
         var rendered = await host.RenderAsync("Home", new { title = "Phone" }, SvelteRenderMode.Hybrid);
@@ -43,7 +40,7 @@ public sealed class SvelteRendererIntegrationTests
     [Fact]
     public async Task EmitsAndStoresExternalCss()
     {
-        await using var host = CreateHost();
+        await using var host = SvelteTestHost.Create();
         host.Views.Set(
             "Home",
             "<script>let { model } = $props();</script><style>h1 { color: red; }</style><h1>{model.title}</h1>");
@@ -63,7 +60,7 @@ public sealed class SvelteRendererIntegrationTests
     [Fact]
     public async Task RendersRealSvelteControlBlocksOnTheServer()
     {
-        await using var host = CreateHost();
+        await using var host = SvelteTestHost.Create();
         host.Views.Set(
             "List",
             """
@@ -85,7 +82,7 @@ public sealed class SvelteRendererIntegrationTests
     [Fact]
     public async Task ManifestRebuildsWhenTheSourceChanges()
     {
-        await using var host = CreateHost();
+        await using var host = SvelteTestHost.Create();
         host.Views.Set("Home", "<h1>one</h1>");
         var first = await host.RenderAsync("Home", null, SvelteRenderMode.Server);
 
@@ -99,7 +96,7 @@ public sealed class SvelteRendererIntegrationTests
     [Fact]
     public async Task UnknownViewProducesSve2002()
     {
-        await using var host = CreateHost();
+        await using var host = SvelteTestHost.Create();
 
         var exception = await Assert.ThrowsAsync<SvelteViewException>(
             async () => await host.RenderAsync("Missing", null, SvelteRenderMode.Server));
@@ -110,7 +107,7 @@ public sealed class SvelteRendererIntegrationTests
     [Fact]
     public async Task ManagedCompilerErrorsProduceSve1000()
     {
-        await using var host = CreateHost(engines: _ => { });
+        await using var host = SvelteTestHost.Create(engines: _ => { });
         host.Views.Set("Home", "{@html model.raw}");
 
         var exception = await Assert.ThrowsAsync<SvelteViewException>(
@@ -122,72 +119,12 @@ public sealed class SvelteRendererIntegrationTests
     [Fact]
     public async Task AppliesTheConfiguredCacheControlHeader()
     {
-        await using var host = CreateHost(options => options.CacheControl = "public,max-age=60");
+        await using var host = SvelteTestHost.Create(options => options.CacheControl = "public,max-age=60");
         host.Views.Set("Home", "<script>let { model } = $props();</script><h1>{model.title}</h1>");
 
         var (context, body) = await host.ExecuteViewAsync("Home", new { title = "Phone" }, SvelteRenderMode.Server);
 
         Assert.Equal("public,max-age=60", context.Response.Headers.CacheControl.ToString());
         Assert.Contains("<h1>Phone</h1>", body);
-    }
-
-    private static TestSvelteHost CreateHost(
-        Action<SvelteSharpOptions>? configure = null,
-        Action<SvelteSharpBuilder>? engines = null)
-    {
-        var views = new InMemorySvelteViewSourceProvider();
-        var services = new ServiceCollection();
-        var builder = services.AddSvelteSharp(options =>
-        {
-            options.SvelteToolchainPath = TestToolchain.Path;
-            options.AllowRuntimeBuildFallback = true;
-            configure?.Invoke(options);
-        });
-        (engines ?? (b => { b.UseJint(); })).Invoke(builder);
-        services.AddSingleton<ISvelteViewSourceProvider>(views);
-        services.AddSingleton<ISvelteModuleSourceProvider>(views);
-        return new TestSvelteHost(services.BuildServiceProvider(), views);
-    }
-
-    private sealed class TestSvelteHost(ServiceProvider services, InMemorySvelteViewSourceProvider views) : IAsyncDisposable
-    {
-        public ServiceProvider Services { get; } = services;
-
-        public InMemorySvelteViewSourceProvider Views { get; } = views;
-
-        public async Task<RenderedSvelteView> RenderAsync(
-            string view,
-            object? model,
-            SvelteRenderMode mode,
-            PageMetadata? metadata = null)
-        {
-            var renderer = Services.GetRequiredService<ISvelteRenderer>();
-            return await renderer.RenderAsync(new SvelteViewRequest(view, model, mode, metadata, CreateContext()));
-        }
-
-        public async Task<(HttpContext Context, string Body)> ExecuteViewAsync(
-            string view,
-            object? model,
-            SvelteRenderMode mode,
-            PageMetadata? metadata = null)
-        {
-            var context = CreateContext();
-            await using var body = new MemoryStream();
-            context.Response.Body = body;
-            await Svelte.View(view, model, mode, metadata).ExecuteAsync(context);
-            body.Position = 0;
-            using var reader = new StreamReader(body);
-            return (context, await reader.ReadToEndAsync());
-        }
-
-        public ValueTask DisposeAsync() => Services.DisposeAsync();
-
-        private DefaultHttpContext CreateContext()
-        {
-            var context = new DefaultHttpContext { RequestServices = Services };
-            context.Request.Scheme = "https";
-            context.Request.Host = new HostString("example.test");
-            return context;
-        }
     }
 }

@@ -97,22 +97,36 @@ public sealed class SvelteRenderer : ISvelteRenderer
             : new SvelteSsrOutput(string.Empty, string.Empty);
         var body = ssr.Body;
         var head = serverRendered ? ssr.Head : RenderMetadata(request.Metadata);
-        var modeAttribute = browserRendered
-            ? $" data-svelte-mode=\"{(request.Mode == SvelteRenderMode.Hybrid ? "hybrid" : "client")}\""
-            : string.Empty;
-        var root = $"<div data-svelte-root=\"{Encode(viewName)}\" data-svelte-build=\"{Encode(manifest.BuildId)}\"{modeAttribute}>{body}</div>";
-        var snapshotScript = browserRendered
-            ? $"<script type=\"application/json\" id=\"svelte-model\">{snapshot}</script>"
-            : string.Empty;
-        var clientScript = browserRendered
-            ? CreateClientScript(request.HttpContext, manifest.BuildId, entry.ClientEntry!)
-            : string.Empty;
-        var css = entry.CssAsset is null
-            ? string.Empty
-            : $"<link rel=\"stylesheet\" href=\"{Encode(SvelteAssetUrl.Create(manifest.BuildId, entry.CssAsset))}\" />";
 
-        var document = $"<!doctype html><html><head>{head}{css}</head><body>{root}{snapshotScript}{clientScript}</body></html>";
-        return new RenderedSvelteView(document, manifest.BuildId, browserRendered ? entry.ClientEntry : null, _options.CacheControl);
+        // Build the document in one buffer to avoid the intermediate strings that the
+        // server, hybrid and client branches would otherwise each allocate.
+        var document = new StringBuilder(256 + head.Length + body.Length + snapshot.Length);
+        document.Append("<!doctype html><html><head>").Append(head);
+        if (entry.CssAsset is not null)
+        {
+            document.Append("<link rel=\"stylesheet\" href=\"")
+                .Append(Encode(SvelteAssetUrl.Create(manifest.BuildId, entry.CssAsset)))
+                .Append("\" />");
+        }
+
+        document.Append("</head><body><div data-svelte-root=\"").Append(Encode(viewName))
+            .Append("\" data-svelte-build=\"").Append(Encode(manifest.BuildId)).Append('"');
+        if (browserRendered)
+        {
+            document.Append(" data-svelte-mode=\"")
+                .Append(request.Mode == SvelteRenderMode.Hybrid ? "hybrid" : "client")
+                .Append('"');
+        }
+
+        document.Append('>').Append(body).Append("</div>");
+        if (browserRendered)
+        {
+            document.Append("<script type=\"application/json\" id=\"svelte-model\">").Append(snapshot).Append("</script>");
+            AppendClientScript(document, request.HttpContext, manifest.BuildId, entry.ClientEntry!);
+        }
+
+        document.Append("</body></html>");
+        return new RenderedSvelteView(document.ToString(), manifest.BuildId, browserRendered ? entry.ClientEntry : null, _options.CacheControl);
     }
 
     private async ValueTask<CompiledView> CompileIfNeededAsync(
@@ -120,7 +134,7 @@ public sealed class SvelteRenderer : ISvelteRenderer
         CancellationToken cancellationToken)
     {
         var existing = _compiledViews.GetValueOrDefault(source.ViewName);
-        if (existing is not null && existing.SourceHash == ComputeHash(source.Source))
+        if (existing is not null && string.Equals(existing.Source, source.Source, StringComparison.Ordinal))
         {
             return existing;
         }
@@ -139,7 +153,7 @@ public sealed class SvelteRenderer : ISvelteRenderer
         };
 
         var result = await _compiler.CompileAsync(source, compilerOptions, cancellationToken);
-        var compiled = new CompiledView(result.SourceHash, result);
+        var compiled = new CompiledView(source.Source, result.SourceHash, result);
         _compiledViews[source.ViewName] = compiled;
         Interlocked.Increment(ref _compiledViewsVersion);
         Volatile.Write(ref _publishedManifestVersion, -1);
@@ -225,12 +239,17 @@ public sealed class SvelteRenderer : ISvelteRenderer
         }
     }
 
-    private string CreateClientScript(HttpContext context, string buildId, string clientEntry)
+    private void AppendClientScript(StringBuilder builder, HttpContext context, string buildId, string clientEntry)
     {
         var nonce = _options.CspNonceFactory?.Invoke(context);
-        var nonceAttribute = string.IsNullOrWhiteSpace(nonce) ? string.Empty : $" nonce=\"{Encode(nonce)}\"";
         var url = SvelteAssetUrl.Create(buildId, clientEntry);
-        return $"<script type=\"module\" src=\"{Encode(url)}\"{nonceAttribute}></script>";
+        builder.Append("<script type=\"module\" src=\"").Append(Encode(url)).Append('"');
+        if (!string.IsNullOrWhiteSpace(nonce))
+        {
+            builder.Append(" nonce=\"").Append(Encode(nonce)).Append('"');
+        }
+
+        builder.Append("></script>");
     }
 
     private static string RenderMetadata(PageMetadata? metadata)
@@ -272,12 +291,10 @@ public sealed class SvelteRenderer : ISvelteRenderer
 
     private SvelteToolchainVersions InstalledToolchainVersions => _toolchain.ReadVersions();
 
-    private static string ComputeHash(string value) => Hash(value);
-
     private static string Hash(string value)
         => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
 
-    private sealed record CompiledView(string SourceHash, SvelteCompilationResult Result);
+    private sealed record CompiledView(string Source, string SourceHash, SvelteCompilationResult Result);
 
     private sealed record BundledView(CompiledView View, SvelteGraphBundle Server, SvelteGraphBundle Client)
     {

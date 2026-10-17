@@ -141,6 +141,8 @@ dotnet run --project samples/SvelteSharp.Sample.Server/SvelteSharp.Sample.Server
 dotnet test tests/SvelteSharp.Tests/SvelteSharp.Tests.csproj
 ```
 
+テストプロジェクトは `dotnet build` 時に自身の `tools/svelte` へ Svelte ツールチェーンを自動復元するため、手動のセットアップ手順なしで `dotnet test` を実行できます。
+
 ### CI とパフォーマンス比較
 
 GitHub Actions の `CI` workflow は .NET 10 の復元、ビルド、テストを実行します。手動実行またはスケジュール実行では、事前コンパイル済みの同等ビューを使った SvelteSharp (Jint/Okojo SSR、プールあり/なし) と JsxCore (Preact SSR) の BenchmarkDotNet 比較も実行し、結果をアーティファクトとして保存します。
@@ -153,16 +155,16 @@ dotnet run --project benchmarks/SvelteSharp.Benchmarks/SvelteSharp.Benchmarks.cs
 
 この比較には初回コンパイル、esbuild、ツールチェーン復元、ファイル探索は含めず、事前コンパイル済みビューの定常状態 SSR だけを含めます。実行環境や Jint のエンジン・プール方式が異なるため、結果は絶対値ではなく同一環境での相対値として扱ってください。
 
-ローカル実測例（Windows 11、Ryzen 7 7735HS、.NET 10.0.12）:
+ローカル実測例（Windows 11、AMD Ryzen 9 3900、.NET 10.0.13）:
 
 | Renderer | 平均 | 割り当て |
 | --- | ---: | ---: |
-| SvelteSharp Jint SSR（プールあり） | 224.2 µs | 70.96 KB |
-| SvelteSharp Okojo SSR（プールあり） | 242.3 µs | 28.45 KB |
-| JsxCore Preact SSR | 414.0 µs | 149.23 KB |
-| SvelteSharp Jint SSR（分離） | 6,562.9 µs | 1,662.79 KB |
+| SvelteSharp Jint SSR（プールあり） | 150.4 µs | 58.56 KB |
+| SvelteSharp Okojo SSR（プールあり） | 122.6 µs | 28.45 KB |
+| JsxCore Preact SSR | 284.8 µs | 149.23 KB |
+| SvelteSharp Jint SSR（分離） | 2,649.0 µs | 1,664.95 KB |
 
-JintとJsxCoreは15 iterations・warmup 5回を同一実行で測定し、Okojoは5 iterations・warmup 3回の別実行で測定しています。同一実行のJint/JsxCore比較では、プールありのSvelteSharpが約46%高速で、割り当ても約52%少なくなっています。
+4つのRendererは1回のBenchmarkDotNet既定実行でまとめて測定しているため、値は直接比較できます。プールありのSvelteSharp JintはJsxCore Preactより約1.9倍高速で、割り当ても約61%少なくなっています。プールありのOkojoはプールありのJintより約19%高速で、割り当ても約半分です。
 
 設計とセットアップの詳細:
 

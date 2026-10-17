@@ -80,9 +80,12 @@ public static class SvelteViewName
             throw new ArgumentException("A view name must not contain path traversal segments.", nameof(viewName));
         }
 
-        if (normalized.Any(char.IsControl) || normalized.Contains(':', StringComparison.Ordinal))
+        foreach (var character in normalized)
         {
-            throw new ArgumentException("A view name contains an invalid character.", nameof(viewName));
+            if (char.IsControl(character) || character == ':')
+            {
+                throw new ArgumentException("A view name contains an invalid character.", nameof(viewName));
+            }
         }
 
         return normalized.EndsWith(".svelte", StringComparison.OrdinalIgnoreCase)
