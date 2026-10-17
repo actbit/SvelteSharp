@@ -13,6 +13,22 @@
     <IsPackable>true</IsPackable>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <Description>MSBuild integration that restores the external Svelte toolchain and compiles Svelte views for SvelteSharp.</Description>
+    <Authors>actbit</Authors>
+    <PackageTags>svelte;sveltesharp;msbuild;build</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/actbit/SvelteSharp</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\SvelteSharp\SvelteSharp.csproj" />
     <ProjectReference Include="..\SvelteSharp.Engine.Jint\SvelteSharp.Engine.Jint.csproj" />

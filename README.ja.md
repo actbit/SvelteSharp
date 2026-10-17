@@ -166,6 +166,19 @@ dotnet run --project benchmarks/SvelteSharp.Benchmarks/SvelteSharp.Benchmarks.cs
 
 4つのRendererは1回のBenchmarkDotNet既定実行でまとめて測定しているため、値は直接比較できます。プールありのSvelteSharp JintはJsxCore Preactより約1.9倍高速で、割り当ても約61%少なくなっています。プールありのOkojoはプールありのJintより約19%高速で、割り当ても約半分です。
 
+### リリース
+
+`v1.0.0` のようなリリースタグを push すると自動でデプロイされます。バージョンは `vX.Y.Z` 形式で、各パートは1〜3桁まで許容します。`Release` workflow は復元・ビルド・テストの後、タグのバージョンで `SvelteSharp`、`SvelteSharp.Engine.Jint`、`SvelteSharp.Engine.Okojo`、`SvelteSharp.Build` を pack し、シンボルパッケージとともに NuGet.org へ push します。初回リリースの前に、NuGet.org の API キーを `NUGET_API_KEY` という名前のリポジトリシークレットに登録してください。
+
+```powershell
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+プレリリースは `vX.Y.Z-<prerelease>` で切ります。例: `v1.3.0-alpha.1` → `-alpha.2` → `-beta.1` → `-rc.1` → 正式 `v1.3.0`。数値部は従来どおり各1〜3桁です。プレリリース版は NuGet.org にプレリリースとして公開され、GitHub Release もプレリリース扱いになるため、既定では選択されません。
+
+バージョンを指定して手動実行することもできます。`push` を無効にすると、パッケージをビルドアーティファクトとして保存するだけのドライランになります。
+
 設計とセットアップの詳細:
 
 - [セットアップ](docs/setup.md)

@@ -1,0 +1,117 @@
+name: Release
+
+on:
+  # Pushing a release tag such as v1.0.0 (or a pre-release such as v1.3.0-alpha.1) deploys
+  # automatically. Numeric parts allow 1 to 3 digits.
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Package version as x.y.z or x.y.z-alpha.1 (0-3 digits per numeric part, no leading zeros)'
+        required: true
+        type: string
+      push:
+        description: 'Push the produced packages to NuGet.org (tag builds always push)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: '**/*.csproj'
+
+      - name: Resolve version
+        id: version
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            version="$INPUT_VERSION"
+          else
+            version="${GITHUB_REF_NAME#v}"
+          fi
+          if ! printf '%s' "$version" | grep -Eq '^(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$'; then
+            echo "Version must be x.y.z or x.y.z-<prerelease>, 0 to 3 digits per numeric part with no leading zeros (got '$version')." >&2
+            exit 1
+          fi
+          if [[ "$version" == *-* ]]; then
+            prerelease=true
+          else
+            prerelease=false
+          fi
+          echo "value=$version" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+          echo "Publishing version $version (prerelease=$prerelease)"
+
+      - name: Restore
+        run: dotnet restore SvelteSharp.slnx
+
+      - name: Build tests
+        run: >-
+          dotnet build tests/SvelteSharp.Tests/SvelteSharp.Tests.csproj
+          --configuration Release --no-restore
+          -p:Version=${{ steps.version.outputs.value }}
+
+      - name: Test
+        run: >-
+          dotnet test tests/SvelteSharp.Tests/SvelteSharp.Tests.csproj
+          --configuration Release --no-build --no-restore
+
+      - name: Pack
+        run: |
+          dotnet pack SvelteSharp/SvelteSharp.csproj --configuration Release --no-restore --output artifacts -p:Version=${{ steps.version.outputs.value }}
+          dotnet pack SvelteSharp.Engine.Jint/SvelteSharp.Engine.Jint.csproj --configuration Release --no-restore --output artifacts -p:Version=${{ steps.version.outputs.value }}
+          dotnet pack SvelteSharp.Engine.Okojo/SvelteSharp.Engine.Okojo.csproj --configuration Release --no-restore --output artifacts -p:Version=${{ steps.version.outputs.value }}
+          dotnet pack SvelteSharp.Build/SvelteSharp.Build.csproj --configuration Release --no-restore --output artifacts -p:Version=${{ steps.version.outputs.value }}
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: artifacts/*.*nupkg
+          if-no-files-found: error
+
+      - name: Push to NuGet.org
+        if: github.event_name == 'push' || inputs.push
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push "artifacts/*.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          dotnet nuget push "artifacts/*.snupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+      - name: Create GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          prerelease: ${{ steps.version.outputs.prerelease }}
+          files: |
+            artifacts/*.nupkg
+            artifacts/*.snupkg

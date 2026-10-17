@@ -169,6 +169,19 @@ Example local result (Windows 11, AMD Ryzen 9 3900, .NET 10.0.13):
 
 All four renderers were measured together in one BenchmarkDotNet default run, so the values are directly comparable. Pooled SvelteSharp Jint was about 1.9x faster than JsxCore Preact with about 61% less allocation; pooled Okojo was about 19% faster than pooled Jint with about half the allocation.
 
+### Releasing
+
+Pushing a release tag such as `v1.0.0` deploys automatically. Versions use `vX.Y.Z`, where each part accepts 1 to 3 digits. The `Release` workflow restores, builds, and tests the repository, packs `SvelteSharp`, `SvelteSharp.Engine.Jint`, `SvelteSharp.Engine.Okojo`, and `SvelteSharp.Build` with the tag version, and pushes them (including symbol packages) to NuGet.org. Add a repository secret named `NUGET_API_KEY` with a NuGet.org API key before the first release.
+
+```powershell
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+Pre-release tags use `vX.Y.Z-<prerelease>`, for example `v1.3.0-alpha.1`, then `-alpha.2`, `-beta.1`, `-rc.1`, and finally `v1.3.0`. The numeric parts still accept 1 to 3 digits. Pre-release packages are published to NuGet.org as pre-release and the GitHub release is marked as a pre-release, so they are not selected by default.
+
+The workflow can also be dispatched manually with a version; leave `push` disabled for a dry run that only uploads the packages as a build artifact.
+
 More documentation:
 
 - [Setup](docs/setup.md)
