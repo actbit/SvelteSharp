@@ -87,8 +87,8 @@ jobs:
       - name: Pack
         run: |
           dotnet pack SvelteSharp.Core/SvelteSharp.Core.csproj --configuration Release --no-restore --output artifacts -p:Version=${{ steps.version.outputs.value }}
-          dotnet pack SvelteSharp.Engine.Jint/SvelteSharp.Engine.Jint.csproj --configuration Release --no-restore --output artifacts -p:Version=${{ steps.version.outputs.value }}
-          dotnet pack SvelteSharp.Engine.Okojo/SvelteSharp.Engine.Okojo.csproj --configuration Release --no-restore --output artifacts -p:Version=${{ steps.version.outputs.value }}
+          dotnet pack SvelteSharp.Jint/SvelteSharp.Jint.csproj --configuration Release --no-restore --output artifacts -p:Version=${{ steps.version.outputs.value }}
+          dotnet pack SvelteSharp.Okojo/SvelteSharp.Okojo.csproj --configuration Release --no-restore --output artifacts -p:Version=${{ steps.version.outputs.value }}
           dotnet pack SvelteSharp.Build/SvelteSharp.Build.csproj --configuration Release --no-restore --output artifacts -p:Version=${{ steps.version.outputs.value }}
           dotnet pack SvelteSharp/SvelteSharp.csproj --configuration Release --no-restore --output artifacts -p:Version=${{ steps.version.outputs.value }}
 

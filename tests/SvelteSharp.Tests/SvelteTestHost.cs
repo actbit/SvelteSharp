@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using SvelteSharp.AspNetCore;
 using SvelteSharp.Compiler;
-using SvelteSharp.Engine.Jint;
+using SvelteSharp.Jint;
 using SvelteSharp.Rendering;
 
 namespace SvelteSharp.Tests;

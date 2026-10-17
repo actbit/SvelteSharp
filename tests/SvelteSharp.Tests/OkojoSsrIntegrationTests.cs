@@ -1,4 +1,4 @@
-using SvelteSharp.Engine.Okojo;
+using SvelteSharp.Okojo;
 
 namespace SvelteSharp.Tests;
 

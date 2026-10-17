@@ -5,21 +5,21 @@ using SvelteSharp.Compiler;
 using SvelteSharp.JavaScript;
 using SvelteSharp.Rendering;
 
-namespace SvelteSharp.Engine.Jint;
+namespace SvelteSharp.Okojo;
 
-/// <summary>Executes a bundled Svelte server graph through Jint.</summary>
-public sealed class JintSvelteSsrRenderer : ISvelteSsrRenderer
+/// <summary>Executes a bundled Svelte server graph through Okojo.</summary>
+public sealed class OkojoSvelteSsrRenderer : ISvelteSsrRenderer
 {
     private readonly ISsrJavaScriptRuntimeFactory _runtimeFactory;
     private readonly ISvelteGraphBundler _bundler;
-    private readonly JintSsrRuntimePool? _runtimePool;
+    private readonly OkojoSsrRuntimePool? _runtimePool;
     private readonly ConcurrentDictionary<string, CachedBundle> _bundleCache = new(StringComparer.Ordinal);
 
-    /// <summary>Creates a Jint SSR renderer.</summary>
-    public JintSvelteSsrRenderer(
+    /// <summary>Creates an Okojo SSR renderer.</summary>
+    public OkojoSvelteSsrRenderer(
         ISsrJavaScriptRuntimeFactory runtimeFactory,
         ISvelteGraphBundler bundler,
-        JintSsrRuntimePool? runtimePool = null)
+        OkojoSsrRuntimePool? runtimePool = null)
     {
         _runtimeFactory = runtimeFactory;
         _bundler = bundler;
@@ -35,15 +35,15 @@ public sealed class JintSvelteSsrRenderer : ISvelteSsrRenderer
         HttpContext httpContext,
         CancellationToken cancellationToken = default)
     {
-        var bundle = await GetBundleAsync(compilation, viewName, cancellationToken);
         var limits = JavaScriptExecutionLimits.Default with
         {
             Timeout = TimeSpan.FromSeconds(5),
             MaxInputBytes = 32 * 1024 * 1024,
             MaxOutputBytes = 16 * 1024 * 1024
         };
+        var bundle = await GetBundleAsync(compilation, viewName, cancellationToken);
 
-        if (_runtimePool is not null && _runtimeFactory.Engine == SvelteJavaScriptEngine.Jint)
+        if (_runtimePool is not null && _runtimeFactory.Engine == SvelteJavaScriptEngine.Okojo)
         {
             return await _runtimePool.RenderAsync(
                 bundle.Code,
@@ -53,24 +53,22 @@ public sealed class JintSvelteSsrRenderer : ISvelteSsrRenderer
         }
 
         var snapshotLiteral = JsonSerializer.Serialize(modelSnapshot);
-        var script = $"{bundle.Code}\nglobalThis.__svelteSharpRendered = await SvelteSharpView.renderSnapshot({snapshotLiteral});\nglobalThis.__svelteSharpResult = JSON.stringify({{ body: globalThis.__svelteSharpRendered.body ?? globalThis.__svelteSharpRendered.html ?? '', head: globalThis.__svelteSharpRendered.head ?? '' }});";
+        var renderExpression = compilation.RequiresAsyncRender
+            ? $"await SvelteSharpView.renderSnapshot({snapshotLiteral})"
+            : $"SvelteSharpView.renderSnapshot({snapshotLiteral})";
+        var script = $"{bundle.Code}\nglobalThis.__svelteSharpRendered = {renderExpression};\nglobalThis.__svelteSharpResult = JSON.stringify({{ body: globalThis.__svelteSharpRendered.body ?? globalThis.__svelteSharpRendered.html ?? '', head: globalThis.__svelteSharpRendered.head ?? '' }});";
         await using var runtime = _runtimeFactory.Create(new JavaScriptExecutionContext(limits, cancellationToken));
         using var document = await runtime.EvaluateJsonAsync(
             script,
             "globalThis.__svelteSharpResult",
             new JavaScriptExecutionContext(limits, cancellationToken));
-        return ParseOutput(document);
-    }
-
-    private static SvelteSsrOutput ParseOutput(JsonDocument document)
-    {
         var root = document.RootElement;
         if (root.ValueKind != JsonValueKind.Object
             || !root.TryGetProperty("body", out var body)
             && !root.TryGetProperty("html", out body))
         {
             throw new JavaScriptEngineException(
-                SvelteJavaScriptEngine.Jint,
+                SvelteJavaScriptEngine.Okojo,
                 "ssr-render",
                 $"Svelte server render returned an unexpected value: {root.GetRawText()}");
         }

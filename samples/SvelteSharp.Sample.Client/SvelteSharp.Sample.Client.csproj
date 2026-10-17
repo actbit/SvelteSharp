@@ -8,7 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\SvelteSharp.Core\SvelteSharp.Core.csproj" />
-    <ProjectReference Include="..\..\SvelteSharp.Engine.Jint\SvelteSharp.Engine.Jint.csproj" />
+    <ProjectReference Include="..\..\SvelteSharp.Jint\SvelteSharp.Jint.csproj" />
     <ProjectReference Include="..\..\SvelteSharp.Build\SvelteSharp.Build.csproj" />
   </ItemGroup>
 

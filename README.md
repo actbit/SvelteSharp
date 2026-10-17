@@ -12,7 +12,7 @@ SvelteSharp renders Svelte 5 components from ASP.NET Core applications using Ser
 
 ## Installation
 
-Install the `SvelteSharp` meta-package. It brings the core runtime, the default Jint engine adapter, and the MSBuild integration:
+Install the `SvelteSharp` meta-package. It brings the core runtime, both engine adapters (Jint and Okojo), and the MSBuild integration:
 
 ```xml
 <ItemGroup>
@@ -22,13 +22,13 @@ Install the `SvelteSharp` meta-package. It brings the core runtime, the default 
 
 | Package | Contents |
 | --- | --- |
-| `SvelteSharp` | Meta-package for the default setup (references the three packages below) |
+| `SvelteSharp` | Meta-package that brings the core runtime, both engine adapters, and the MSBuild integration |
 | `SvelteSharp.Core` | Runtime library with no package dependencies |
-| `SvelteSharp.Engine.Jint` | Default JavaScript engine adapter |
+| `SvelteSharp.Jint` | Jint JavaScript engine adapter |
+| `SvelteSharp.Okojo` | Okojo JavaScript engine adapter |
 | `SvelteSharp.Build` | MSBuild integration that restores the toolchain and compiles views |
-| `SvelteSharp.Engine.Okojo` | Okojo engine adapter; reference it in addition to `SvelteSharp` to use Okojo |
 
-If you prefer to reference the layers individually, use `SvelteSharp.Core`, one engine adapter, and `SvelteSharp.Build`.
+The meta-package includes both adapters, so you can select Jint or Okojo at runtime without adding references. If you prefer a single engine or to reference the layers individually, use `SvelteSharp.Core`, one engine adapter (`SvelteSharp.Jint` or `SvelteSharp.Okojo`), and `SvelteSharp.Build`.
 
 On the first `dotnet build`, the Svelte, TypeScript, and esbuild toolchain is restored externally. These binaries and TypeScript sources are not embedded in the SvelteSharp NuGet packages.
 
@@ -49,7 +49,7 @@ Override the pinned versions from the consuming project with exact SemVer values
 ```csharp
 using SvelteSharp;
 using SvelteSharp.AspNetCore;
-using SvelteSharp.Engine.Jint;
+using SvelteSharp.Jint;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -124,15 +124,22 @@ svelte.UseJintForCompiler()
       .UseOkojoForSsr();
 ```
 
-To use Okojo, reference the `SvelteSharp.Engine.Okojo` package as well.
+The `SvelteSharp` meta-package already includes the Okojo adapter, so `UseOkojo...` works without adding references.
 
 Jint SSR uses a bounded engine pool. Each precompiled server bundle is parsed once per pooled
-engine, and the request-specific global state is restored before the engine is returned. The
-bundle is trusted generated code; request models still cross the JavaScript boundary as JSON.
+engine, and the request-specific global state is restored before the engine is returned. A runtime
+that fails or times out is discarded rather than returned to the pool. The bundle is trusted
+generated code; request models still cross the JavaScript boundary as JSON.
 
 Okojo SSR uses the same bounded pooling strategy. Synchronous renders call the prepared Svelte
-function directly, while Promise-based renders use Okojo's host pump. A runtime that fails or
-times out is discarded rather than returned to the pool.
+function directly, while Promise-based renders use Okojo's host pump.
+
+Pooling assumes render-pure modules: a runtime is reused across requests, so state kept in module
+scope is shared. Set `SvelteSharpOptions.SsrMaxPooledEnginesPerBundle` to `0` to isolate every
+request in a fresh runtime when a view must not share module state (this is slower).
+
+The model snapshot embedded for hydration is escaped for the HTML script context regardless of the
+configured `JsonSerializerOptions.Encoder`, and the shared snapshot keeps the same value.
 
 ## Samples
 
@@ -179,7 +186,7 @@ All four renderers were measured together in one BenchmarkDotNet default run, so
 
 ### Releasing
 
-Pushing a release tag such as `v1.0.0` deploys automatically. Versions use `vX.Y.Z`, where each part accepts 1 to 3 digits. The `Release` workflow restores, builds, and tests the repository, packs `SvelteSharp`, `SvelteSharp.Engine.Jint`, `SvelteSharp.Engine.Okojo`, and `SvelteSharp.Build` with the tag version, and pushes them (including symbol packages) to NuGet.org. Add a repository secret named `NUGET_API_KEY` with a NuGet.org API key before the first release.
+Pushing a release tag such as `v1.0.0` deploys automatically. Versions use `vX.Y.Z`, where each part accepts 1 to 3 digits. The `Release` workflow restores, builds, and tests the repository, packs `SvelteSharp.Core`, `SvelteSharp.Jint`, `SvelteSharp.Okojo`, `SvelteSharp.Build`, and the `SvelteSharp` meta-package with the tag version, and pushes them (including symbol packages) to NuGet.org. Add a repository secret named `NUGET_API_KEY` with a NuGet.org API key before the first release.
 
 ```powershell
 git tag v1.0.0

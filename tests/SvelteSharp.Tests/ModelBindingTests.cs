@@ -42,6 +42,25 @@ public sealed class ModelBindingTests
     }
 
     [Fact]
+    public void EscapesSnapshotsFromDangerousContractOptions()
+    {
+        var generator = new TypeScriptDeclarationGenerator(new ModelContractOptions
+        {
+            Json = new JsonSerializerOptions(JsonSerializerDefaults.Web)
+            {
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            }
+        });
+
+        var snapshot = generator
+            .CreateContract(typeof(OrderPageModel), new OrderPageModel { DisplayName = "</script>" })
+            .JsonSnapshot;
+
+        Assert.DoesNotContain("</script>", snapshot, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\\u003C", snapshot);
+    }
+
+    [Fact]
     public void UsesExplicitModelNameAndBuildsAnIndexDeclaration()
     {
         var registry = new SvelteModelRegistry();

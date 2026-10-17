@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using SvelteSharp.AspNetCore;
-using SvelteSharp.Engine.Jint;
+using SvelteSharp.Jint;
 
 namespace SvelteSharp.Tests;
 

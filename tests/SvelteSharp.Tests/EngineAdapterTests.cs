@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using SvelteSharp.AspNetCore;
-using SvelteSharp.Engine.Okojo;
+using SvelteSharp.Okojo;
 
 namespace SvelteSharp.Tests;
 

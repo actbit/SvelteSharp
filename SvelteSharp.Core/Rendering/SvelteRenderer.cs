@@ -121,7 +121,8 @@ public sealed class SvelteRenderer : ISvelteRenderer
         document.Append('>').Append(body).Append("</div>");
         if (browserRendered)
         {
-            document.Append("<script type=\"application/json\" id=\"svelte-model\">").Append(snapshot).Append("</script>");
+            document.Append("<script type=\"application/json\" id=\"svelte-model\">")
+                .Append(SvelteJsonEmbedding.Escape(snapshot)).Append("</script>");
             AppendClientScript(document, request.HttpContext, manifest.BuildId, entry.ClientEntry!);
         }
 

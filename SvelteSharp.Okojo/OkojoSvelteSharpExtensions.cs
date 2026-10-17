@@ -5,10 +5,10 @@ using SvelteSharp.Compiler;
 using SvelteSharp.JavaScript;
 using SvelteSharp.Rendering;
 
-namespace SvelteSharp.Engine.Jint;
+namespace SvelteSharp.Okojo;
 
-/// <summary>Registers the Jint compiler and SSR adapter.</summary>
-public static class JintSvelteSharpExtensions
+/// <summary>Registers the Okojo compiler and SSR adapter.</summary>
+public static class OkojoSvelteSharpExtensions
 {
     /// <summary>Registration hook used by the engine-neutral fluent selector.</summary>
     public static SvelteSharpBuilder RegisterSsr(SvelteSharpBuilder builder)
@@ -19,34 +19,28 @@ public static class JintSvelteSharpExtensions
         => ConfigureCompiler(builder);
 
     /// <summary>
-    /// Uses Jint for both compiler and SSR hosts. This is the short form of
-    /// <c>UseJintForCompiler().UseJintForSsr()</c> and overrides both engine
+    /// Uses Okojo for both compiler and SSR hosts. This is the short form of
+    /// <c>UseOkojoForCompiler().UseOkojoForSsr()</c> and overrides both engine
     /// selections made earlier in the registration chain.
     /// </summary>
-    public static SvelteSharpBuilder UseJint(this SvelteSharpBuilder builder)
+    public static SvelteSharpBuilder UseOkojo(this SvelteSharpBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        builder.Options.CompilerEngine = SvelteJavaScriptEngine.Jint;
-        builder.Options.SsrEngine = SvelteJavaScriptEngine.Jint;
+        builder.Options.CompilerEngine = SvelteJavaScriptEngine.Okojo;
+        builder.Options.SsrEngine = SvelteJavaScriptEngine.Okojo;
         builder.Options.UseManagedCompilerBaseline = false;
         builder.Options.UseManagedSsrBaseline = false;
         ConfigureCompiler(builder);
         return ConfigureSsr(builder);
     }
 
-    /// <summary>Uses Jint only for the compiler host.</summary>
-    public static SvelteSharpBuilder UseJintForCompilerAdapter(this SvelteSharpBuilder builder)
-    {
-        return ConfigureCompiler(builder);
-    }
-
     private static SvelteSharpBuilder ConfigureCompiler(SvelteSharpBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        builder.Options.CompilerEngine = SvelteJavaScriptEngine.Jint;
+        builder.Options.CompilerEngine = SvelteJavaScriptEngine.Okojo;
         builder.Options.UseManagedCompilerBaseline = false;
-        builder.Services.AddSingleton<JintJsonRuntimeFactory>();
-        builder.Services.AddSingleton<ICompilerJavaScriptRuntimeFactory>(sp => sp.GetRequiredService<JintJsonRuntimeFactory>());
+        builder.Services.AddSingleton<OkojoJsonRuntimeFactory>();
+        builder.Services.AddSingleton<ICompilerJavaScriptRuntimeFactory>(sp => sp.GetRequiredService<OkojoJsonRuntimeFactory>());
         builder.Services.AddSingleton<ISvelteCompiler>(sp =>
         {
             var prebuilt = sp.GetRequiredService<SveltePrebuiltArtifactStore>();
@@ -88,11 +82,12 @@ public static class JintSvelteSharpExtensions
     private static SvelteSharpBuilder ConfigureSsr(SvelteSharpBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        builder.Options.SsrEngine = SvelteJavaScriptEngine.Jint;
+        builder.Options.SsrEngine = SvelteJavaScriptEngine.Okojo;
         builder.Options.UseManagedSsrBaseline = false;
-        builder.Services.AddSingleton<JintJsonRuntimeFactory>();
-        builder.Services.AddSingleton<ISsrJavaScriptRuntimeFactory>(sp => sp.GetRequiredService<JintJsonRuntimeFactory>());
-        builder.Services.AddSingleton<JintSsrRuntimePool>();
+        builder.Services.AddSingleton<OkojoJsonRuntimeFactory>();
+        builder.Services.AddSingleton(sp => new OkojoSsrRuntimePool(
+            maxPooledEnginesPerBundle: Math.Max(1, sp.GetRequiredService<SvelteSharpOptions>().SsrMaxPooledEnginesPerBundle)));
+        builder.Services.AddSingleton<ISsrJavaScriptRuntimeFactory>(sp => sp.GetRequiredService<OkojoJsonRuntimeFactory>());
         builder.Services.AddSingleton<ISvelteGraphBundler>(sp =>
         {
             var prebuilt = sp.GetRequiredService<SveltePrebuiltArtifactStore>();
@@ -102,10 +97,12 @@ public static class JintSvelteSharpExtensions
                     sp.GetService<ISvelteModuleSourceProvider>(),
                     new NativeEsbuildOptions { ToolchainPath = sp.GetRequiredService<SvelteToolchain>().RootPath });
         });
-        builder.Services.AddSingleton<ISvelteSsrRenderer>(sp => new JintSvelteSsrRenderer(
+        builder.Services.AddSingleton<ISvelteSsrRenderer>(sp => new OkojoSvelteSsrRenderer(
             sp.GetRequiredService<ISsrJavaScriptRuntimeFactory>(),
             sp.GetRequiredService<ISvelteGraphBundler>(),
-            sp.GetRequiredService<JintSsrRuntimePool>()));
+            sp.GetRequiredService<SvelteSharpOptions>().SsrMaxPooledEnginesPerBundle > 0
+                ? sp.GetRequiredService<OkojoSsrRuntimePool>()
+                : null));
         return builder;
     }
 }

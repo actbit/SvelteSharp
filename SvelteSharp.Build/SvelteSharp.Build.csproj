@@ -31,7 +31,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SvelteSharp.Core\SvelteSharp.Core.csproj" />
-    <ProjectReference Include="..\SvelteSharp.Engine.Jint\SvelteSharp.Engine.Jint.csproj" />
+    <ProjectReference Include="..\SvelteSharp.Jint\SvelteSharp.Jint.csproj" />
     <None Include="buildTransitive\SvelteSharp.Build.targets" Pack="true" PackagePath="buildTransitive\" />
     <None Include="$(OutputPath)*.dll" Pack="true" PackagePath="tools\net10.0\" Visible="false" />
     <None Include="$(OutputPath)SvelteSharp.Build.deps.json;$(OutputPath)SvelteSharp.Build.runtimeconfig.json" Pack="true" PackagePath="tools\net10.0\" Visible="false" />

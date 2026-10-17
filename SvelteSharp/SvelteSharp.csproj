@@ -15,7 +15,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Description>Meta-package that references the SvelteSharp core runtime, the default Jint engine adapter, and the MSBuild integration. Install this package for the default Jint setup.</Description>
+    <Description>Meta-package that references the SvelteSharp core runtime, both JavaScript engine adapters (Jint and Okojo), and the MSBuild integration. Install this package to get the full setup and choose an engine at runtime.</Description>
     <Authors>actbit</Authors>
     <PackageTags>svelte;ssr;aspnetcore;hydration;csr</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -26,7 +26,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SvelteSharp.Core\SvelteSharp.Core.csproj" />
-    <ProjectReference Include="..\SvelteSharp.Engine.Jint\SvelteSharp.Engine.Jint.csproj" />
+    <ProjectReference Include="..\SvelteSharp.Jint\SvelteSharp.Jint.csproj" />
+    <ProjectReference Include="..\SvelteSharp.Okojo\SvelteSharp.Okojo.csproj" />
     <ProjectReference Include="..\SvelteSharp.Build\SvelteSharp.Build.csproj" />
     <None Include="..\README.md" Pack="true" PackagePath="\" Visible="false" />
   </ItemGroup>

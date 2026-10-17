@@ -8,7 +8,7 @@ using Okojo.JavaScript.Objects;
 using SvelteSharp.JavaScript;
 using SvelteSharp.Rendering;
 
-namespace SvelteSharp.Engine.Okojo;
+namespace SvelteSharp.Okojo;
 
 /// <summary>
 /// Reuses Okojo runtimes for trusted, precompiled Svelte server bundles.

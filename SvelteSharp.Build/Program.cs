@@ -1,6 +1,6 @@
 using SvelteSharp.Build;
 using SvelteSharp.Compiler;
-using SvelteSharp.Engine.Jint;
+using SvelteSharp.Jint;
 using SvelteSharp.JavaScript;
 using SvelteSharp.Models;
 using SvelteSharp.Rendering;

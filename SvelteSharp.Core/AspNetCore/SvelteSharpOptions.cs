@@ -38,6 +38,12 @@ public sealed class SvelteSharpOptions
     /// <summary>Engine selected for production SSR execution.</summary>
     public SvelteJavaScriptEngine SsrEngine { get; set; } = SvelteJavaScriptEngine.Jint;
 
+    /// <summary>
+    /// Maximum number of pooled SSR runtimes kept per compiled server bundle. Set to 0 to disable
+    /// pooling so every request renders in a fresh runtime (slower, strongest isolation).
+    /// </summary>
+    public int SsrMaxPooledEnginesPerBundle { get; set; } = 4;
+
     /// <summary>Fixed dependency-lock hash included in build IDs.</summary>
     public string DependencyLockHash { get; set; } = "none";
 
@@ -97,7 +103,7 @@ public sealed class SvelteSharpBuilder
     {
         Options.SsrEngine = SvelteJavaScriptEngine.Jint;
         Options.UseManagedSsrBaseline = false;
-        return RegisterAdapter("SvelteSharp.Engine.Jint", "RegisterSsr");
+        return RegisterAdapter("SvelteSharp.Jint", "RegisterSsr");
     }
 
     /// <summary>Selects Okojo for SSR explicitly.</summary>
@@ -105,7 +111,7 @@ public sealed class SvelteSharpBuilder
     {
         Options.SsrEngine = SvelteJavaScriptEngine.Okojo;
         Options.UseManagedSsrBaseline = false;
-        return RegisterAdapter("SvelteSharp.Engine.Okojo", "RegisterSsr");
+        return RegisterAdapter("SvelteSharp.Okojo", "RegisterSsr");
     }
 
     /// <summary>Selects Jint for compiler execution.</summary>
@@ -113,7 +119,7 @@ public sealed class SvelteSharpBuilder
     {
         Options.CompilerEngine = SvelteJavaScriptEngine.Jint;
         Options.UseManagedCompilerBaseline = false;
-        return RegisterAdapter("SvelteSharp.Engine.Jint", "RegisterCompiler");
+        return RegisterAdapter("SvelteSharp.Jint", "RegisterCompiler");
     }
 
     /// <summary>Selects Okojo for compiler execution.</summary>
@@ -121,7 +127,7 @@ public sealed class SvelteSharpBuilder
     {
         Options.CompilerEngine = SvelteJavaScriptEngine.Okojo;
         Options.UseManagedCompilerBaseline = false;
-        return RegisterAdapter("SvelteSharp.Engine.Okojo", "RegisterCompiler");
+        return RegisterAdapter("SvelteSharp.Okojo", "RegisterCompiler");
     }
 
     /// <summary>Registers a model for explicit TypeScript declaration generation.</summary>

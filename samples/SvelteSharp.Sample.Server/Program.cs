@@ -1,6 +1,6 @@
 using SvelteSharp;
 using SvelteSharp.AspNetCore;
-using SvelteSharp.Engine.Jint;
+using SvelteSharp.Jint;
 using SvelteSharp.Models;
 
 var builder = WebApplication.CreateBuilder(args);

@@ -11,8 +11,8 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <ProjectReference Include="..\..\SvelteSharp.Core\SvelteSharp.Core.csproj" />
-    <ProjectReference Include="..\..\SvelteSharp.Engine.Jint\SvelteSharp.Engine.Jint.csproj" />
-    <ProjectReference Include="..\..\SvelteSharp.Engine.Okojo\SvelteSharp.Engine.Okojo.csproj" />
+    <ProjectReference Include="..\..\SvelteSharp.Jint\SvelteSharp.Jint.csproj" />
+    <ProjectReference Include="..\..\SvelteSharp.Okojo\SvelteSharp.Okojo.csproj" />
     <ProjectReference Include="..\..\SvelteSharp.Build\SvelteSharp.Build.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />

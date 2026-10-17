@@ -3,7 +3,7 @@ using System.Text.Json;
 using Okojo.JavaScript.Embedding;
 using SvelteSharp.JavaScript;
 
-namespace SvelteSharp.Engine.Okojo;
+namespace SvelteSharp.Okojo;
 
 /// <summary>Okojo-backed JSON runtime factory.</summary>
 public sealed class OkojoJsonRuntimeFactory : ICompilerJavaScriptRuntimeFactory, ISsrJavaScriptRuntimeFactory

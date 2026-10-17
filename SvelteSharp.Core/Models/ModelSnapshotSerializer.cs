@@ -15,7 +15,9 @@ public static class ModelSnapshotSerializer
 
         try
         {
-            return JsonSerializer.Serialize(model, modelType, jsonOptions);
+            // Escape after serialization so the snapshot is safe to embed in HTML even when a
+            // caller supplies a custom encoder or converter that leaves markup unescaped.
+            return SvelteJsonEmbedding.Escape(JsonSerializer.Serialize(model, modelType, jsonOptions));
         }
         catch (JsonException exception)
         {

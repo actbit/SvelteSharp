@@ -3,15 +3,15 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <RootNamespace>SvelteSharp.Engine.Okojo</RootNamespace>
-    <AssemblyName>SvelteSharp.Engine.Okojo</AssemblyName>
+    <RootNamespace>SvelteSharp.Jint</RootNamespace>
+    <AssemblyName>SvelteSharp.Jint</AssemblyName>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <PropertyGroup>
-    <Description>Okojo JavaScript engine adapter for the SvelteSharp compiler and server-side rendering.</Description>
+    <Description>Jint JavaScript engine adapter for the SvelteSharp compiler and server-side rendering.</Description>
     <Authors>actbit</Authors>
-    <PackageTags>svelte;sveltesharp;okojo;ssr</PackageTags>
+    <PackageTags>svelte;sveltesharp;jint;ssr</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/actbit/SvelteSharp</RepositoryUrl>
@@ -24,6 +24,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SvelteSharp.Core\SvelteSharp.Core.csproj" />
-    <PackageReference Include="Okojo.JavaScript.Embedding" Version="0.2.0-preview.2" />
+    <PackageReference Include="Jint" Version="4.16.3" />
   </ItemGroup>
 </Project>

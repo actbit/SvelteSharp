@@ -71,8 +71,8 @@ View 名からファイルへの対応、サポートする描画モード、必
 | `SvelteSharp.Build` | MSBuild 統合、依存復元、増分ビルド、manifest、publish |
 | `SvelteSharp.Compiler` | Svelte compiler の実行、診断、client/server 出力 |
 | `SvelteSharp.JavaScript` | エンジン非依存の module/Promise/host API 契約と実行制限 |
-| `SvelteSharp.Engine.Jint` | Jint による compiler host と SSR host の adapter |
-| `SvelteSharp.Engine.Okojo` | Okojo による compiler host と SSR host の adapter |
+| `SvelteSharp.Jint` | Jint による compiler host と SSR host の adapter |
+| `SvelteSharp.Okojo` | Okojo による compiler host と SSR host の adapter |
 | `SvelteSharp.Rendering` | SSR、リクエストコンテキスト、Model 受け渡し |
 | `SvelteSharp.Models` | C# 型から TypeScript 宣言への変換 |
 
@@ -88,7 +88,7 @@ View 名からファイルへの対応、サポートする描画モード、必
   <SvelteSharpCompilerEngine>Jint</SvelteSharpCompilerEngine>
 </PropertyGroup>
 <ItemGroup>
-  <PackageReference Include="SvelteSharp.Engine.Okojo" />
+  <PackageReference Include="SvelteSharp.Okojo" />
 </ItemGroup>
 ```
 

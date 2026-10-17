@@ -1,5 +1,5 @@
-using SvelteSharp.Engine.Jint;
-using SvelteSharp.Engine.Okojo;
+using SvelteSharp.Jint;
+using SvelteSharp.Okojo;
 using SvelteSharp.JavaScript;
 
 namespace SvelteSharp.Tests;

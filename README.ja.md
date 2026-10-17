@@ -12,7 +12,7 @@ SvelteSharp は、ASP.NET Core から Svelte 5 のコンポーネントを Serve
 
 ## インストール
 
-`SvelteSharp` メタパッケージを参照します。これだけで Core 本体、既定の Jint エンジン、MSBuild 統合が揃います。
+`SvelteSharp` メタパッケージを参照します。これだけで Core 本体、両エンジンアダプタ（Jint と Okojo）、MSBuild 統合が揃います。
 
 ```xml
 <ItemGroup>
@@ -22,13 +22,13 @@ SvelteSharp は、ASP.NET Core から Svelte 5 のコンポーネントを Serve
 
 | パッケージ | 内容 |
 | --- | --- |
-| `SvelteSharp` | 既定構成用のメタパッケージ（下記3つを参照） |
+| `SvelteSharp` | Core本体・両エンジンアダプタ・MSBuild統合をまとめるメタパッケージ |
 | `SvelteSharp.Core` | 依存ゼロの実行時ライブラリ |
-| `SvelteSharp.Engine.Jint` | 既定のJavaScriptエンジンアダプタ |
+| `SvelteSharp.Jint` | Jintエンジンアダプタ |
+| `SvelteSharp.Okojo` | Okojoエンジンアダプタ |
 | `SvelteSharp.Build` | ツールチェーン復元とviewコンパイルを行うMSBuild統合 |
-| `SvelteSharp.Engine.Okojo` | Okojoエンジンアダプタ。Okojoを使う場合は `SvelteSharp` に加えて参照 |
 
-層ごとに個別参照する場合は `SvelteSharp.Core` とエンジン1つ、`SvelteSharp.Build` を参照します。
+メタパッケージは両アダプタを含むため、参照を追加せずに実行時に Jint/Okojo を切り替えられます。単一エンジンに絞る場合や層ごとに個別参照する場合は `SvelteSharp.Core` とエンジン1つ（`SvelteSharp.Jint` または `SvelteSharp.Okojo`）、`SvelteSharp.Build` を参照します。
 
 初回の `dotnet build` 時に、Svelte、TypeScript、esbuild が外部ツールチェーンとして復元されます。これらのバイナリやTypeScriptソースはSvelteSharpのNuGetパッケージには含まれません。
 
@@ -49,7 +49,7 @@ SvelteSharp は、ASP.NET Core から Svelte 5 のコンポーネントを Serve
 ```csharp
 using SvelteSharp;
 using SvelteSharp.AspNetCore;
-using SvelteSharp.Engine.Jint;
+using SvelteSharp.Jint;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -124,12 +124,16 @@ svelte.UseJintForCompiler()
       .UseOkojoForSsr();
 ```
 
-Okojoを使う場合は `SvelteSharp.Engine.Okojo` パッケージも参照してください。
+`SvelteSharp` メタパッケージは Okojo アダプタも含むため、参照を追加せずに `UseOkojo...` を使えます。
 
 Jint の SSR では上限付きのエンジンプールを使用します。事前コンパイル済みの server
-bundle はプール内の各エンジンで一度だけ解析し、リクエストごとのグローバル状態を復元してから返却します。bundle は信頼できる生成コードであることを前提とし、リクエストの Model は引き続き JSON として JavaScript 境界を越えます。
+bundle はプール内の各エンジンで一度だけ解析し、リクエストごとのグローバル状態を復元してから返却します。失敗またはタイムアウトしたランタイムはプールへ戻さず破棄します。bundle は信頼できる生成コードであることを前提とし、リクエストの Model は引き続き JSON として JavaScript 境界を越えます。
 
-Okojo の SSR も同じ上限付きプールを使用します。同期描画では準備済みのSvelte関数を直接呼び出し、Promiseを返す描画ではOkojoのhost pumpで待機します。例外やタイムアウトが発生したランタイムはプールへ戻さず破棄します。
+Okojo の SSR も同じ上限付きプールを使用します。同期描画では準備済みのSvelte関数を直接呼び出し、Promiseを返す描画ではOkojoのhost pumpで待機します。
+
+プールは render-pure なモジュールを前提とします。ランタイムをリクエスト間で再利用するため、モジュールスコープに保持した状態は共有されます。ビュー間でモジュール状態を共有したくない場合は `SvelteSharpOptions.SsrMaxPooledEnginesPerBundle` を `0` にすると、各リクエストを新しいランタイムで分離できます（低速になります）。
+
+hydration 用に埋め込む model snapshot は、設定された `JsonSerializerOptions.Encoder` に関わらず HTML の script 文脈向けにエスケープされ、共有される snapshot は同じ値のままです。
 
 ## サンプル
 
@@ -176,7 +180,7 @@ dotnet run --project benchmarks/SvelteSharp.Benchmarks/SvelteSharp.Benchmarks.cs
 
 ### リリース
 
-`v1.0.0` のようなリリースタグを push すると自動でデプロイされます。バージョンは `vX.Y.Z` 形式で、各パートは1〜3桁まで許容します。`Release` workflow は復元・ビルド・テストの後、タグのバージョンで `SvelteSharp`、`SvelteSharp.Engine.Jint`、`SvelteSharp.Engine.Okojo`、`SvelteSharp.Build` を pack し、シンボルパッケージとともに NuGet.org へ push します。初回リリースの前に、NuGet.org の API キーを `NUGET_API_KEY` という名前のリポジトリシークレットに登録してください。
+`v1.0.0` のようなリリースタグを push すると自動でデプロイされます。バージョンは `vX.Y.Z` 形式で、各パートは1〜3桁まで許容します。`Release` workflow は復元・ビルド・テストの後、タグのバージョンで `SvelteSharp.Core`、`SvelteSharp.Jint`、`SvelteSharp.Okojo`、`SvelteSharp.Build`、および `SvelteSharp` メタパッケージを pack し、シンボルパッケージとともに NuGet.org へ push します。初回リリースの前に、NuGet.org の API キーを `NUGET_API_KEY` という名前のリポジトリシークレットに登録してください。
 
 ```powershell
 git tag v1.0.0

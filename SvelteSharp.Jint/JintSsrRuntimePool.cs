@@ -8,7 +8,7 @@ using Jint.Native.Object;
 using SvelteSharp.JavaScript;
 using SvelteSharp.Rendering;
 
-namespace SvelteSharp.Engine.Jint;
+namespace SvelteSharp.Jint;
 
 /// <summary>
 /// Reuses Jint engines for trusted, precompiled Svelte server bundles.
@@ -77,6 +77,13 @@ public sealed class JintSsrRuntimePool : IAsyncDisposable
             engine = bucket.Rent();
             return await engine.RenderAsync(modelSnapshot, bundleBytes, requiresAsyncRender, context).ConfigureAwait(false);
         }
+        catch
+        {
+            // A failed or timed out render may leave the engine in an unknown state, so discard it
+            // instead of returning it to the pool.
+            engine?.Abandon();
+            throw;
+        }
         finally
         {
             if (bucket is not null && engine is not null)
@@ -137,6 +144,11 @@ public sealed class JintSsrRuntimePool : IAsyncDisposable
 
         public void Return(PooledEngine engine)
         {
+            if (!engine.IsReusable)
+            {
+                return;
+            }
+
             try
             {
                 engine.RestoreGlobals();
@@ -186,6 +198,8 @@ public sealed class JintSsrRuntimePool : IAsyncDisposable
         private readonly bool _supportsObjectModel;
         private readonly JsonParser _jsonParser;
         private readonly JsValue[] _renderArguments = new JsValue[1];
+        private int _reusable = 1;
+        private int _disposed;
 
         private PooledEngine(
             global::Jint.Engine engine,
@@ -284,9 +298,28 @@ public sealed class JintSsrRuntimePool : IAsyncDisposable
             }
         }
 
+        public bool IsReusable => Volatile.Read(ref _reusable) != 0;
+
         public void RestoreGlobals() => Engine.Advanced.RestoreGlobalSnapshot(_cleanGlobals);
 
-        public void Dispose() => Engine.Dispose();
+        /// <summary>Marks the engine as unusable and disposes it after a failed render.</summary>
+        public void Abandon()
+        {
+            if (Interlocked.Exchange(ref _reusable, 0) == 0)
+            {
+                return;
+            }
+
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _disposed, 1) == 0)
+            {
+                Engine.Dispose();
+            }
+        }
 
         private static SvelteSsrOutput ReadOutput(JsValue value, long maxOutputBytes)
         {

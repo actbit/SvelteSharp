@@ -5,8 +5,8 @@ using SvelteSharp;
 using SvelteSharp.AspNetCore;
 using SvelteSharp.Build;
 using SvelteSharp.Compiler;
-using SvelteSharp.Engine.Jint;
-using SvelteSharp.Engine.Okojo;
+using SvelteSharp.Jint;
+using SvelteSharp.Okojo;
 using SvelteSharp.Rendering;
 
 namespace SvelteSharp.Tests;

@@ -3,7 +3,7 @@ using System.Text.Json;
 using Jint;
 using SvelteSharp.JavaScript;
 
-namespace SvelteSharp.Engine.Jint;
+namespace SvelteSharp.Jint;
 
 /// <summary>Jint-backed JSON runtime factory.</summary>
 public sealed class JintJsonRuntimeFactory : ICompilerJavaScriptRuntimeFactory, ISsrJavaScriptRuntimeFactory
