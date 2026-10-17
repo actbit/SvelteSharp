@@ -16,7 +16,7 @@ public sealed class SvelteIntegrationTests
     [Fact]
     public async Task JintCompilesBundlesAndRendersAViewWithTheModelSnapshot()
     {
-        var toolchain = SvelteToolchain.Resolve(FindToolchainPath());
+        var toolchain = TestToolchain.Resolve();
         var source = new SvelteSourceFile(
             "Products/Detail",
             """
@@ -107,7 +107,7 @@ public sealed class SvelteIntegrationTests
     [Fact]
     public async Task OkojoPooledSsrRendersRepeatedRequestsWithoutLeakingTheModel()
     {
-        var toolchain = SvelteToolchain.Resolve(FindToolchainPath());
+        var toolchain = TestToolchain.Resolve();
         var source = new SvelteSourceFile(
             "Products/OkojoDetail",
             """
@@ -155,7 +155,7 @@ public sealed class SvelteIntegrationTests
     [Fact]
     public async Task BuildPipelinePublishesModelDeclarationsAsAPrivateArtifact()
     {
-        var toolchain = SvelteToolchain.Resolve(FindToolchainPath());
+        var toolchain = TestToolchain.Resolve();
         var source = new SvelteSourceFile("Index", "<h1>hello</h1>");
         var compiler = new SvelteCompiler(new JintJsonRuntimeFactory(), toolchain: toolchain);
         var bundler = new NativeSvelteGraphBundler(
@@ -185,23 +185,6 @@ public sealed class SvelteIntegrationTests
     {
         var resources = typeof(SvelteCompiler).Assembly.GetManifestResourceNames();
         Assert.DoesNotContain(resources, resource => resource.Contains("svelte", StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static string FindToolchainPath()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null)
-        {
-            var candidate = Path.Combine(directory.FullName, "tools", "svelte");
-            if (File.Exists(Path.Combine(candidate, "generated", "svelte-compiler.js")))
-            {
-                return candidate;
-            }
-
-            directory = directory.Parent;
-        }
-
-        throw new DirectoryNotFoundException("The setup-installed Svelte toolchain could not be found.");
     }
 
     [SvelteModel]
